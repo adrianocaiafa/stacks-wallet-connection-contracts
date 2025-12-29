@@ -71,6 +71,7 @@
 )
 
 ;; Helper to calculate current day (using total-check-ins as day counter)
+;; This provides a simple day tracking mechanism based on total check-ins
 (define-private (get-current-day)
     (var-get total-check-ins)
 )
