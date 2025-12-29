@@ -88,3 +88,30 @@
     )
 )
 
+;; Helper to update user stats
+(define-private (update-user-stats (user principal) (fee uint) (points uint) (quest-time uint))
+    (let ((current-stats (map-get? user-stats user)))
+        (if (is-none current-stats)
+            ;; First quest for user
+            (map-set user-stats user {
+                total-quests: u1,
+                total-points: points,
+                total-spent: fee,
+                quest-master-level: u1
+            })
+            ;; Update existing stats
+            (let ((stats (unwrap-panic current-stats)))
+                (let ((new-points (+ (get total-points stats) points))
+                      (new-level (+ u1 (/ new-points u100))))  ;; Level up every 100 points
+                    (map-set user-stats user {
+                        total-quests: (+ (get total-quests stats) u1),
+                        total-points: new-points,
+                        total-spent: (+ (get total-spent stats) fee),
+                        quest-master-level: new-level
+                    })
+                )
+            )
+        )
+    )
+)
+
