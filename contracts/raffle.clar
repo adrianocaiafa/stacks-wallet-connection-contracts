@@ -46,3 +46,20 @@
     ticket-count: uint,
     total-tickets: uint
 })
+
+;; Helper to add participant to list if new in round
+(define-private (add-participant-if-new (round uint) (participant principal))
+    (let ((existing-index (map-get? participant-index (tuple (round round) (participant participant)))))
+        (if (is-none existing-index)
+            ;; New participant in round, add to list
+            (let ((new-index (var-get participant-count)))
+                (var-set participant-count (+ new-index u1))
+                (map-set participant-list (tuple (round round) (index new-index)) participant)
+                (map-set participant-index (tuple (round round) (participant participant)) (some new-index))
+                true
+            )
+            ;; Already in list
+            false
+        )
+    )
+)
