@@ -93,7 +93,8 @@
                 (let ((last-day (get last-check-in-day stats))
                       (current-streak (get current-streak stats))
                       (longest-streak (get longest-streak stats)))
-                    ;; Check if streak continues (same day or consecutive)
+                    ;; Check if streak continues (consecutive days)
+                    ;; Streak breaks if more than 1 day has passed
                     (let ((new-streak 
                         (if (is-eq current-day last-day)
                             ;; Same day - streak continues
