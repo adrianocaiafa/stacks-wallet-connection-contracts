@@ -21,6 +21,10 @@ epoch = "latest"
 path = "contracts/raffle.clar"
 epoch = "latest"
 
+[contracts.quest-system]
+path = "contracts/quest-system.clar"
+epoch = "latest"
+
 [repl.analysis]
 passes = ["check_checker"]
 check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
