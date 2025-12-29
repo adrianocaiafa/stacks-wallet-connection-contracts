@@ -27,3 +27,15 @@
 (define-constant POINTS-WEEKLY u50)
 (define-constant POINTS-SPECIAL u20)
 
+;; Total quests counter
+(define-data-var total-quests uint u0)
+
+;; Unique users counter
+(define-data-var user-count uint u0)
+
+;; List of unique users
+(define-map user-list uint principal)
+
+;; Map to track if user is in list
+(define-map user-index principal (optional uint))
+
