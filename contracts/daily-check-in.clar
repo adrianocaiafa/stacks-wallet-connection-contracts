@@ -75,3 +75,47 @@
     (var-get total-check-ins)
 )
 
+;; Helper to update user check-in stats
+(define-private (update-user-stats (user principal) (fee uint) (current-day uint))
+    (let ((current-stats (map-get? user-check-ins user)))
+        (if (is-none current-stats)
+            ;; First check-in for user
+            (map-set user-check-ins user {
+                total-check-ins: u1,
+                current-streak: u1,
+                longest-streak: u1,
+                last-check-in-day: current-day,
+                total-points: POINTS-PER-CHECK-IN
+            })
+            ;; Update existing stats
+            (let ((stats (unwrap-panic current-stats)))
+                (let ((last-day (get last-check-in-day stats))
+                      (current-streak (get current-streak stats))
+                      (longest-streak (get longest-streak stats)))
+                    ;; Check if streak continues (same day or consecutive)
+                    (let ((new-streak 
+                        (if (is-eq current-day last-day)
+                            ;; Same day - streak continues
+                            current-streak
+                            (if (is-eq current-day (+ last-day u1))
+                                ;; Consecutive day - increment streak
+                                (+ current-streak u1)
+                                ;; Streak broken - reset to 1
+                                u1
+                            )
+                        ))
+                        (new-longest (if (> new-streak longest-streak) new-streak longest-streak)))
+                        (map-set user-check-ins user {
+                            total-check-ins: (+ (get total-check-ins stats) u1),
+                            current-streak: new-streak,
+                            longest-streak: new-longest,
+                            last-check-in-day: current-day,
+                            total-points: (+ (get total-points stats) POINTS-PER-CHECK-IN)
+                        })
+                    )
+                )
+            )
+        )
+    )
+)
+
