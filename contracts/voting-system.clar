@@ -164,8 +164,9 @@
         (asserts! (is-eq sender (var-get admin)) ERR-NOT-ADMIN)
         
         ;; Get poll data
-        (match (map-get? polls poll-id) poll-data
-            (let ((poll poll-data))
+        (let ((poll-opt (map-get? polls poll-id)))
+            (asserts! (is-some poll-opt) ERR-POLL-NOT-FOUND)
+            (let ((poll (unwrap-panic poll-opt)))
                 ;; Close poll
                 (map-set polls poll-id {
                     title: (get title poll),
@@ -190,7 +191,6 @@
                     closed: true
                 })
             )
-            (err ERR-POLL-NOT-FOUND)
         )
     )
 )
