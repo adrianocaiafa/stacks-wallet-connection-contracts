@@ -120,7 +120,7 @@
                     ;; Check if user already voted
                     (match (map-get? votes (tuple (poll-id poll-id) (voter sender))) existing-vote
                         (err ERR-ALREADY-VOTED)
-                        (begin
+                        (let ((_none-value existing-vote))
                             ;; Record vote
                             (map-set votes (tuple (poll-id poll-id) (voter sender)) {
                                 option-index: option-index,
