@@ -107,9 +107,10 @@
         ;; Validate fee
         (asserts! (>= fee-amount VOTE-FEE) ERR-INSUFFICIENT-FEE)
         
-        ;; Get poll data
-        (match (map-get? polls poll-id) poll-data
-            (let ((poll poll-data))
+        ;; Get poll data (unwrap-panic is safe after checking poll exists)
+        (let ((poll-opt (map-get? polls poll-id)))
+            (asserts! (is-some poll-opt) ERR-POLL-NOT-FOUND)
+            (let ((poll (unwrap-panic poll-opt)))
                 ;; Validate poll is open
                 (asserts! (get is-open poll) ERR-POLL-CLOSED)
                 
@@ -152,7 +153,6 @@
                     })
                 )
             )
-            (err ERR-POLL-NOT-FOUND)
         )
     )
 )
