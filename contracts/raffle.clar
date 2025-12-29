@@ -12,3 +12,21 @@
 
 ;; Ticket price (in micro-STX)
 (define-constant TICKET-PRICE u10000)  ;; 0.01 STX per ticket
+
+;; Contract admin (can be changed if needed)
+(define-data-var admin principal tx-sender)
+
+;; Round status: true = open, false = closed
+(define-data-var is-open bool true)
+
+;; Total tickets sold in current round
+(define-data-var total-tickets uint u0)
+
+;; Unique participants counter
+(define-data-var participant-count uint u0)
+
+;; Current round number
+(define-data-var current-round uint u1)
+
+;; Current round winner (none if not chosen yet)
+(define-data-var current-winner (optional principal) none)
