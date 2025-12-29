@@ -88,6 +88,26 @@ Sistema de votação/polls on-chain para decisões da comunidade.
 - `get-user-vote`: Consultar voto do usuário
 - `get-poll-results`: Consultar resultados completos da poll
 
+### Daily Check-in (`daily-check-in.clar`)
+Sistema de check-in diário on-chain com rastreamento de streaks.
+
+**Funcionalidades:**
+- Check-in diário (0.01 STX por check-in)
+- Sistema de streak (dias consecutivos)
+- Rastreamento de longest streak
+- Milestones: 7, 30 e 100 dias
+- Reivindicação de recompensas por milestone
+- Leaderboard de streaks
+- Histórico completo de check-ins
+
+**Funções principais:**
+- `check-in`: Fazer check-in diário
+- `claim-milestone-reward`: Reivindicar recompensa por milestone
+- `get-user-stats`: Consultar estatísticas do usuário
+- `can-check-in`: Verificar se pode fazer check-in hoje
+- `is-milestone-claimed`: Verificar se milestone foi reivindicado
+- `get-user-at-index-with-stats`: Consultar usuário com stats (leaderboard)
+
 ## Estrutura
 
 ```
