@@ -13,7 +13,7 @@
 ;; Ticket price (in micro-STX)
 (define-constant TICKET-PRICE u10000)  ;; 0.01 STX per ticket
 
-;; Contract admin (can be changed if needed)
+;; Contract admin (set to deployer, can be changed if needed)
 (define-data-var admin principal tx-sender)
 
 ;; Round status: true = open, false = closed
