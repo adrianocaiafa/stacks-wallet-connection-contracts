@@ -17,6 +17,10 @@ epoch = "latest"
 path = "contracts/gas-meter.clar"
 epoch = "latest"
 
+[contracts.raffle]
+path = "contracts/raffle.clar"
+epoch = "latest"
+
 [repl.analysis]
 passes = ["check_checker"]
 check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
