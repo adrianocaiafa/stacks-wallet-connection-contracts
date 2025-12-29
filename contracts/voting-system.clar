@@ -109,7 +109,7 @@
         
         ;; Get poll data
         (match (map-get? polls poll-id) poll-data
-            (let ((poll (unwrap-panic poll-data)))
+            (let ((poll poll-data))
                 ;; Validate poll is open
                 (asserts! (get is-open poll) ERR-POLL-CLOSED)
                 
