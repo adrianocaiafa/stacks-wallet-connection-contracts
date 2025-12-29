@@ -19,3 +19,15 @@
 ;; Points per check-in
 (define-constant POINTS-PER-CHECK-IN u1)
 
+;; Total check-ins counter
+(define-data-var total-check-ins uint u0)
+
+;; Unique users counter
+(define-data-var user-count uint u0)
+
+;; List of unique users
+(define-map user-list uint principal)
+
+;; Map to track if user is in list
+(define-map user-index principal (optional uint))
+
