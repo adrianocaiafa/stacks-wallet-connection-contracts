@@ -47,21 +47,20 @@
     quest-master-level: uint
 })
 
-;; Quest completion history: (user, quest-id) -> {quest-type, points, timestamp, block-height}
+;; Quest completion history: (user, quest-id) -> {quest-type, points, timestamp}
 (define-map quest-history (tuple (user principal) (quest-id uint)) {
     quest-type: (string-ascii 20),
     points: uint,
-    timestamp: uint,
-    block-height: uint
+    timestamp: uint
 })
 
 ;; User quest counter
 (define-map user-quest-counter principal uint)
 
-;; Last completion time for daily quest: user -> block-height
+;; Last completion time for daily quest: user -> quest-id (for cooldown tracking)
 (define-map last-daily-quest principal uint)
 
-;; Last completion time for weekly quest: user -> block-height
+;; Last completion time for weekly quest: user -> quest-id (for cooldown tracking)
 (define-map last-weekly-quest principal uint)
 
 ;; Quest type statistics: quest-type -> {count, total-fees, total-points}
@@ -137,18 +136,18 @@
     )
 )
 
-;; Helper to check cooldown
-(define-private (check-cooldown (user principal) (quest-type (string-ascii 20)) (current-block uint))
+;; Helper to check cooldown (using total-quests as time reference)
+(define-private (check-cooldown (user principal) (quest-type (string-ascii 20)) (current-quest-id uint))
     (if (is-eq quest-type "daily")
         (let ((last-completion (default-to u0 (map-get? last-daily-quest user))))
-            (if (>= current-block (+ last-completion DAILY-COOLDOWN))
+            (if (>= current-quest-id (+ last-completion DAILY-COOLDOWN))
                 true
                 false
             )
         )
         (if (is-eq quest-type "weekly")
             (let ((last-completion (default-to u0 (map-get? last-weekly-quest user))))
-                (if (>= current-block (+ last-completion WEEKLY-COOLDOWN))
+                (if (>= current-quest-id (+ last-completion WEEKLY-COOLDOWN))
                     true
                     false
                 )
@@ -162,7 +161,6 @@
 ;; Main function to complete a quest
 (define-public (complete-quest (quest-type (string-ascii 20)) (fee-amount uint))
     (let ((sender tx-sender)
-          (current-block (block-height))
           (quest-time (var-get total-quests)))
         
         ;; Validate quest type and fee
@@ -183,8 +181,8 @@
             (asserts! (> required-fee u0) ERR-INVALID-QUEST)
             (asserts! (>= fee-amount required-fee) ERR-INSUFFICIENT-FEE)
             
-            ;; Check cooldown
-            (asserts! (check-cooldown sender quest-type current-block) ERR-QUEST-ON-COOLDOWN)
+            ;; Check cooldown using total-quests as time reference
+            (asserts! (check-cooldown sender quest-type quest-time) ERR-QUEST-ON-COOLDOWN)
             
             ;; Add user to list if new
             (add-user-if-new sender)
@@ -207,9 +205,9 @@
                     
                     ;; Update last completion time for cooldown
                     (if (is-eq quest-type "daily")
-                        (map-set last-daily-quest sender current-block)
+                        (map-set last-daily-quest sender quest-time)
                         (if (is-eq quest-type "weekly")
-                            (map-set last-weekly-quest sender current-block)
+                            (map-set last-weekly-quest sender quest-time)
                             true
                         )
                     )
@@ -218,8 +216,7 @@
                     (map-set quest-history (tuple (user sender) (quest-id user-quest-id)) {
                         quest-type: quest-type,
                         points: quest-points,
-                        timestamp: quest-time,
-                        block-height: current-block
+                        timestamp: quest-time
                     })
                     
                     ;; Update statistics
@@ -313,17 +310,17 @@
 
 ;; Read-only: Check if user can complete daily quest
 (define-read-only (can-complete-daily-quest (user principal))
-    (let ((current-block (block-height))
+    (let ((current-quest-id (var-get total-quests))
           (last-completion (default-to u0 (map-get? last-daily-quest user))))
-        (>= current-block (+ last-completion DAILY-COOLDOWN))
+        (>= current-quest-id (+ last-completion DAILY-COOLDOWN))
     )
 )
 
 ;; Read-only: Check if user can complete weekly quest
 (define-read-only (can-complete-weekly-quest (user principal))
-    (let ((current-block (block-height))
+    (let ((current-quest-id (var-get total-quests))
           (last-completion (default-to u0 (map-get? last-weekly-quest user))))
-        (>= current-block (+ last-completion WEEKLY-COOLDOWN))
+        (>= current-quest-id (+ last-completion WEEKLY-COOLDOWN))
     )
 )
 
