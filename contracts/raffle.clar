@@ -2,6 +2,7 @@
 ;; On-chain raffle/sorteio system
 ;; Users buy tickets; admin closes and picks winner
 ;; Each ticket purchase generates transaction fees
+;; Designed for high engagement and gamification
 
 (define-constant ERR-RAFFLE-CLOSED (err u1001))
 (define-constant ERR-INVALID-AMOUNT (err u1002))
