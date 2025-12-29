@@ -101,7 +101,7 @@
             ;; Update existing stats
             (let ((stats (unwrap-panic current-stats)))
                 (let ((new-points (+ (get total-points stats) points))
-                      (new-level (+ u1 (/ new-points u100))))  ;; Level up every 100 points
+                      (new-level (+ u1 (/ new-points u100))))  ;; Level up every 100 points (Quest Master progression)
                     (map-set user-stats user {
                         total-quests: (+ (get total-quests stats) u1),
                         total-points: new-points,
