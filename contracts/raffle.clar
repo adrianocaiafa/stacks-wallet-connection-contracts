@@ -63,3 +63,41 @@
         )
     )
 )
+
+;; Public function: Buy tickets
+;; @param ticket-count: Number of tickets to buy
+(define-public (buy-ticket (ticket-count uint))
+    (let ((sender tx-sender)
+          (round (var-get current-round)))
+        
+        ;; Validate that round is open
+        (asserts! (var-get is-open) ERR-RAFFLE-CLOSED)
+        
+        ;; Validate ticket quantity
+        (asserts! (> ticket-count u0) ERR-INVALID-TICKET-COUNT)
+        (asserts! (<= ticket-count u100) ERR-INVALID-TICKET-COUNT)  ;; Limit of 100 tickets per transaction
+        
+        ;; Calculate total amount needed
+        (let ((total-amount (* ticket-count TICKET-PRICE)))
+            ;; Add participant to list if new
+            (add-participant-if-new round sender)
+            
+            ;; Get current number of tickets for participant
+            (let ((current-tickets (default-to u0 (map-get? participant-tickets (tuple (round round) (participant sender))))))
+                ;; Update participant tickets
+                (map-set participant-tickets (tuple (round round) (participant sender)) (+ current-tickets ticket-count))
+                
+                ;; Increment total tickets counter
+                (var-set total-tickets (+ (var-get total-tickets) ticket-count))
+                
+                ;; STX is sent automatically with the transaction
+                (ok {
+                    participant: sender,
+                    tickets-bought: ticket-count,
+                    total-tickets: (+ current-tickets ticket-count),
+                    round: round
+                })
+            )
+        )
+    )
+)
