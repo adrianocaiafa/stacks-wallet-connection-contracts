@@ -177,11 +177,9 @@
                 
                 ;; Clear active poll if this was the active one
                 (match (var-get active-poll-id) active-id
-                    (let ((id (unwrap-panic active-id)))
-                        (if (is-eq id poll-id)
-                            (var-set active-poll-id none)
-                            true
-                        )
+                    (if (is-eq active-id poll-id)
+                        (var-set active-poll-id none)
+                        true
                     )
                     true
                 )
