@@ -192,8 +192,9 @@
         )
         
         ;; Get user stats
-        (match (map-get? user-check-ins sender) stats-value
-            (let ((stats stats-value)
+        (let ((user-stats-opt (map-get? user-check-ins sender)))
+            (asserts! (is-some user-stats-opt) ERR-NO-REWARD-AVAILABLE)
+            (let ((stats (unwrap-panic user-stats-opt))
                   (current-streak (get current-streak stats)))
                 ;; Check if user reached milestone
                 (asserts! (>= current-streak milestone) ERR-NO-REWARD-AVAILABLE)
@@ -209,7 +210,6 @@
                     claimed: true
                 })
             )
-            (err ERR-NO-REWARD-AVAILABLE)
         )
     )
 )
