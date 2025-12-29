@@ -172,3 +172,43 @@
         (ok (var-get current-round))
     )
 )
+
+;; Read-only: Get current round status
+(define-read-only (get-round-status)
+    {
+        round: (var-get current-round),
+        is-open: (var-get is-open),
+        total-tickets: (var-get total-tickets),
+        participant-count: (var-get participant-count),
+        winner: (var-get current-winner)
+    }
+)
+
+;; Read-only: Get participant ticket count in current round
+(define-read-only (get-participant-tickets (participant principal))
+    (let ((round (var-get current-round)))
+        (default-to u0 (map-get? participant-tickets (tuple (round round) (participant participant))))
+    )
+)
+
+;; Read-only: Get round history
+(define-read-only (get-round-history (round uint))
+    (map-get? round-history round)
+)
+
+;; Read-only: Get participant by index in current round
+(define-read-only (get-participant-at-index (index uint))
+    (let ((round (var-get current-round)))
+        (map-get? participant-list (tuple (round round) (index index)))
+    )
+)
+
+;; Read-only: Get admin
+(define-read-only (get-admin)
+    (var-get admin)
+)
+
+;; Read-only: Get ticket price
+(define-read-only (get-ticket-price)
+    TICKET-PRICE
+)
