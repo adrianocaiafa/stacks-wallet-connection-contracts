@@ -11,3 +11,9 @@
 (define-constant ERR-ALREADY-VOTED (err u1005))
 (define-constant ERR-NOT-ADMIN (err u1006))
 
+;; Vote fee (in micro-STX)
+(define-constant VOTE-FEE u10000)  ;; 0.01 STX per vote
+
+;; Maximum options per poll
+(define-constant MAX-OPTIONS u10)
+
