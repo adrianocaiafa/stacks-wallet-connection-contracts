@@ -25,6 +25,10 @@ epoch = "latest"
 path = "contracts/quest-system.clar"
 epoch = "latest"
 
+[contracts.voting-system]
+path = "contracts/voting-system.clar"
+epoch = "latest"
+
 [repl.analysis]
 passes = ["check_checker"]
 check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
