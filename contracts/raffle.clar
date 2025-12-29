@@ -163,7 +163,7 @@
         ;; Increment round number
         (var-set current-round (+ (var-get current-round) u1))
         
-        ;; Reset counters
+        ;; Reset counters for new round
         (var-set total-tickets u0)
         (var-set participant-count u0)
         (var-set current-winner none)
