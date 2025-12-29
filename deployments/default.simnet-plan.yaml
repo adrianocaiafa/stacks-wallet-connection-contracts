@@ -69,6 +69,11 @@ plan:
             path: contracts/gas-meter.clar
             clarity-version: 4
         - emulated-contract-publish:
+            contract-name: raffle
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/raffle.clar
+            clarity-version: 4
+        - emulated-contract-publish:
             contract-name: tip-jar
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/tip-jar.clar
