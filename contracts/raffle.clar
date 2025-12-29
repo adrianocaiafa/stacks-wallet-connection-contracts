@@ -78,7 +78,7 @@
         (asserts! (> ticket-count u0) ERR-INVALID-TICKET-COUNT)
         (asserts! (<= ticket-count u100) ERR-INVALID-TICKET-COUNT)  ;; Limit of 100 tickets per transaction to prevent spam
         
-        ;; Calculate total amount needed
+        ;; Calculate total amount needed (STX sent with transaction)
         (let ((total-amount (* ticket-count TICKET-PRICE)))
             ;; Add participant to list if new
             (add-participant-if-new round sender)
