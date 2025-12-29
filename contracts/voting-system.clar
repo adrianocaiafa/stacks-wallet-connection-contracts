@@ -17,3 +17,12 @@
 ;; Maximum options per poll
 (define-constant MAX-OPTIONS u10)
 
+;; Contract admin (set to deployer)
+(define-data-var admin principal tx-sender)
+
+;; Poll counter
+(define-data-var poll-counter uint u0)
+
+;; Current active poll ID (none if no active poll)
+(define-data-var active-poll-id (optional uint) none)
+
