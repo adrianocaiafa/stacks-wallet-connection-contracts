@@ -68,6 +68,26 @@ Sistema de missões/quests on-chain com sistema de pontos e níveis.
 - `can-complete-daily-quest`: Verificar se pode completar quest diária
 - `can-complete-weekly-quest`: Verificar se pode completar quest semanal
 
+### Voting System (`voting-system.clar`)
+Sistema de votação/polls on-chain para decisões da comunidade.
+
+**Funcionalidades:**
+- Criação de polls pelo admin (até 10 opções)
+- Votação em polls (0.01 STX por voto)
+- Prevenção de votos duplicados
+- Resultados em tempo real
+- Fechamento de polls pelo admin
+- Histórico completo de votos e resultados
+
+**Funções principais:**
+- `create-poll`: Criar nova poll (admin)
+- `vote`: Votar em uma poll
+- `close-poll`: Fechar poll (admin)
+- `get-poll`: Consultar dados da poll
+- `get-option-votes`: Consultar votos de uma opção
+- `get-user-vote`: Consultar voto do usuário
+- `get-poll-results`: Consultar resultados completos da poll
+
 ## Estrutura
 
 ```
