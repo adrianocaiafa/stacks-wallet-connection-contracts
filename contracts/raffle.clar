@@ -4,6 +4,7 @@
 ;; Each ticket purchase generates transaction fees
 ;; Designed for high engagement and gamification
 
+;; Error codes
 (define-constant ERR-RAFFLE-CLOSED (err u1001))
 (define-constant ERR-INVALID-AMOUNT (err u1002))
 (define-constant ERR-NO-PARTICIPANTS (err u1003))
