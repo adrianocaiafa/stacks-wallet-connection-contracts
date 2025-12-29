@@ -88,4 +88,9 @@ plan:
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/tip-jar-v2.clar
             clarity-version: 4
+        - emulated-contract-publish:
+            contract-name: voting-system
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/voting-system.clar
+            clarity-version: 4
       epoch: "3.3"
