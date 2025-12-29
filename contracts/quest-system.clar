@@ -55,3 +55,19 @@
     block-height: uint
 })
 
+;; User quest counter
+(define-map user-quest-counter principal uint)
+
+;; Last completion time for daily quest: user -> block-height
+(define-map last-daily-quest principal uint)
+
+;; Last completion time for weekly quest: user -> block-height
+(define-map last-weekly-quest principal uint)
+
+;; Quest type statistics: quest-type -> {count, total-fees, total-points}
+(define-map quest-type-stats (string-ascii 20) {
+    count: uint,
+    total-fees: uint,
+    total-points: uint
+})
+
