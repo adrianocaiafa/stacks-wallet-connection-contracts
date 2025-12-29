@@ -50,3 +50,11 @@
 ;; Voter count per poll: poll-id -> count
 (define-map poll-voter-count uint uint)
 
+;; Helper to add voter to poll list
+(define-private (add-voter-to-poll (poll-id uint) (voter principal))
+    (let ((current-count (default-to u0 (map-get? poll-voter-count poll-id))))
+        (map-set poll-voters (tuple (poll-id poll-id) (index current-count)) voter)
+        (map-set poll-voter-count poll-id (+ current-count u1))
+    )
+)
+
