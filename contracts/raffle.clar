@@ -151,3 +151,24 @@
         )
     )
 )
+
+;; Public function: Start new round (admin only)
+(define-public (start-new-round)
+    (let ((sender tx-sender))
+        ;; Validate that sender is admin
+        (asserts! (is-eq sender (var-get admin)) ERR-NOT-ADMIN)
+        
+        ;; Increment round number
+        (var-set current-round (+ (var-get current-round) u1))
+        
+        ;; Reset counters
+        (var-set total-tickets u0)
+        (var-set participant-count u0)
+        (var-set current-winner none)
+        
+        ;; Open new round
+        (var-set is-open true)
+        
+        (ok (var-get current-round))
+    )
+)
