@@ -53,3 +53,25 @@
 ;; Milestone rewards claimed: (user, milestone) -> claimed
 (define-map milestone-claims (tuple (user principal) (milestone uint)) bool)
 
+;; Helper to add user to list if new
+(define-private (add-user-if-new (user principal))
+    (let ((existing-index (map-get? user-index user)))
+        (if (is-none existing-index)
+            ;; New user, add to list
+            (let ((new-index (var-get user-count)))
+                (var-set user-count (+ new-index u1))
+                (map-set user-list new-index user)
+                (map-set user-index user (some new-index))
+                true
+            )
+            ;; Already in list
+            false
+        )
+    )
+)
+
+;; Helper to calculate current day (using total-check-ins as day counter)
+(define-private (get-current-day)
+    (var-get total-check-ins)
+)
+
