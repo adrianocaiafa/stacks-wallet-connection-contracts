@@ -30,3 +30,19 @@
 
 ;; Current round winner (none if not chosen yet)
 (define-data-var current-winner (optional principal) none)
+
+;; Map of tickets per participant in current round: participant -> ticket-count
+(define-map participant-tickets (tuple (round uint) (participant principal)) uint)
+
+;; List of participants in current round: (round, index) -> participant
+(define-map participant-list (tuple (round uint) (index uint)) principal)
+
+;; Map to track participant index in list: (round, participant) -> index
+(define-map participant-index (tuple (round uint) (participant principal)) (optional uint))
+
+;; Round winners history: round -> {winner, ticket-count, total-tickets}
+(define-map round-history uint {
+    winner: principal,
+    ticket-count: uint,
+    total-tickets: uint
+})
