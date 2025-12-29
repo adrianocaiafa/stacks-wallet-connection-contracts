@@ -31,6 +31,23 @@ Mini-game de ações pagas com pequenas taxas.
 - Histórico de ações
 - Leaderboard de usuários
 
+### Raffle (`raffle.clar`)
+Sistema de rifa/sorteio on-chain com alto engajamento.
+
+**Funcionalidades:**
+- Compra de tickets (0.01 STX por ticket)
+- Fechamento de round e seleção de vencedor (admin)
+- Histórico de rounds e vencedores
+- Rastreamento de participantes e tickets
+- Sistema de rounds múltiplos
+
+**Funções principais:**
+- `buy-ticket`: Comprar tickets para o round atual
+- `close-and-pick-winner`: Fechar round e escolher vencedor (admin)
+- `start-new-round`: Iniciar novo round (admin)
+- `get-round-status`: Consultar status do round atual
+- `get-participant-tickets`: Consultar tickets de um participante
+
 ## Estrutura
 
 ```
