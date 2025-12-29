@@ -75,7 +75,7 @@
         
         ;; Validate ticket quantity
         (asserts! (> ticket-count u0) ERR-INVALID-TICKET-COUNT)
-        (asserts! (<= ticket-count u100) ERR-INVALID-TICKET-COUNT)  ;; Limit of 100 tickets per transaction
+        (asserts! (<= ticket-count u100) ERR-INVALID-TICKET-COUNT)  ;; Limit of 100 tickets per transaction to prevent spam
         
         ;; Calculate total amount needed
         (let ((total-amount (* ticket-count TICKET-PRICE)))
