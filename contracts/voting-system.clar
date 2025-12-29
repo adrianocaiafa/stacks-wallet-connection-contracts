@@ -160,3 +160,98 @@
     )
 )
 
+;; Public function: Close a poll (admin only)
+(define-public (close-poll (poll-id uint))
+    (let ((sender tx-sender))
+        ;; Validate that sender is admin
+        (asserts! (is-eq sender (var-get admin)) ERR-NOT-ADMIN)
+        
+        ;; Get poll data
+        (match (map-get? polls poll-id) poll-data
+            (let ((poll poll-data))
+                ;; Close poll
+                (map-set polls poll-id {
+                    title: (get title poll),
+                    options: (get options poll),
+                    is-open: false,
+                    total-votes: (get total-votes poll),
+                    creator: (get creator poll)
+                })
+                
+                ;; Clear active poll if this was the active one
+                (match (var-get active-poll-id) active-id
+                    (if (is-eq (unwrap-panic active-id) poll-id)
+                        (var-set active-poll-id none)
+                        true
+                    )
+                    true
+                )
+                
+                (ok {
+                    poll-id: poll-id,
+                    total-votes: (get total-votes poll),
+                    closed: true
+                })
+            )
+            (err ERR-POLL-NOT-FOUND)
+        )
+    )
+)
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get poll data
+(define-read-only (get-poll (poll-id uint))
+    (map-get? polls poll-id)
+)
+
+;; Read-only: Get vote count for specific option
+(define-read-only (get-option-votes (poll-id uint) (option-index uint))
+    (default-to u0 (map-get? option-votes (tuple (poll-id poll-id) (option-index option-index))))
+)
+
+;; Read-only: Get user's vote for a poll
+(define-read-only (get-user-vote (poll-id uint) (voter principal))
+    (map-get? votes (tuple (poll-id poll-id) (voter voter)))
+)
+
+;; Read-only: Get total polls count
+(define-read-only (get-poll-count)
+    (var-get poll-counter)
+)
+
+;; Read-only: Get active poll ID
+(define-read-only (get-active-poll-id)
+    (var-get active-poll-id)
+)
+
+;; Read-only: Get poll results with all option counts
+(define-read-only (get-poll-results (poll-id uint))
+    (match (map-get? polls poll-id) poll-data
+        (let ((poll poll-data)
+              (options (get options poll))
+              (option-count (len options)))
+            (some {
+                poll-id: poll-id,
+                title: (get title poll),
+                options: options,
+                is-open: (get is-open poll),
+                total-votes: (get total-votes poll),
+                option-count: option-count
+            })
+        )
+        none
+    )
+)
+
+;; Read-only: Get voter count for a poll
+(define-read-only (get-poll-voter-count (poll-id uint))
+    (default-to u0 (map-get? poll-voter-count poll-id))
+)
+
+;; Read-only: Get voter by index for a poll
+(define-read-only (get-poll-voter (poll-id uint) (index uint))
+    (map-get? poll-voters (tuple (poll-id poll-id) (index index)))
+)
