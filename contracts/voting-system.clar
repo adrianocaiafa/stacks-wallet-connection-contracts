@@ -99,3 +99,64 @@
     )
 )
 
+;; Public function: Vote on a poll
+(define-public (vote (poll-id uint) (option-index uint) (fee-amount uint))
+    (let ((sender tx-sender)
+          (vote-time (var-get poll-counter)))
+        
+        ;; Validate fee
+        (asserts! (>= fee-amount VOTE-FEE) ERR-INSUFFICIENT-FEE)
+        
+        ;; Get poll data
+        (match (map-get? polls poll-id) poll-data
+            (let ((poll (unwrap-panic poll-data)))
+                ;; Validate poll is open
+                (asserts! (get is-open poll) ERR-POLL-CLOSED)
+                
+                ;; Validate option index
+                (let ((option-count (len (get options poll))))
+                    (asserts! (< option-index option-count) ERR-INVALID-OPTION)
+                    
+                    ;; Check if user already voted
+                    (match (map-get? votes (tuple (poll-id poll-id) (voter sender))) existing-vote
+                        (err ERR-ALREADY-VOTED)
+                        (begin
+                            ;; Record vote
+                            (map-set votes (tuple (poll-id poll-id) (voter sender)) {
+                                option-index: option-index,
+                                timestamp: vote-time
+                            })
+                            
+                            ;; Update option vote count
+                            (let ((current-count (default-to u0 (map-get? option-votes (tuple (poll-id poll-id) (option-index option-index))))))
+                                (map-set option-votes (tuple (poll-id poll-id) (option-index option-index)) (+ current-count u1))
+                            )
+                            
+                            ;; Update total votes
+                            (map-set polls poll-id {
+                                title: (get title poll),
+                                options: (get options poll),
+                                is-open: (get is-open poll),
+                                total-votes: (+ (get total-votes poll) u1),
+                                creator: (get creator poll)
+                            })
+                            
+                            ;; Add voter to list
+                            (add-voter-to-poll poll-id sender)
+                            
+                            ;; STX is sent automatically with the transaction
+                            (ok {
+                                poll-id: poll-id,
+                                voter: sender,
+                                option-index: option-index,
+                                total-votes: (+ (get total-votes poll) u1)
+                            })
+                        )
+                    )
+                )
+            )
+            (err ERR-POLL-NOT-FOUND)
+        )
+    )
+)
+
