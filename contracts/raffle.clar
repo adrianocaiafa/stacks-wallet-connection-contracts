@@ -101,3 +101,53 @@
         )
     )
 )
+
+;; Public function: Close round and pick winner (admin only)
+(define-public (close-and-pick-winner)
+    (let ((sender tx-sender)
+          (round (var-get current-round)))
+        
+        ;; Validate that sender is admin
+        (asserts! (is-eq sender (var-get admin)) ERR-NOT-ADMIN)
+        
+        ;; Validate that round is open
+        (asserts! (var-get is-open) ERR-ALREADY-CLOSED)
+        
+        ;; Validate that there are participants
+        (let ((total-tickets-sold (var-get total-tickets)))
+            (asserts! (> total-tickets-sold u0) ERR-NO-PARTICIPANTS)
+            
+            ;; Close the round
+            (var-set is-open false)
+            
+            ;; Pick winner using simple pseudo-random
+            ;; Uses total-tickets as seed for pseudo-random number
+            (let ((participant-count-var (var-get participant-count)))
+                
+                ;; Calculate winner index: total-tickets % participant-count
+                (let ((winner-index (mod total-tickets-sold participant-count-var)))
+                    ;; Get winner by index (unwrap-panic is safe because we validated participant-count > 0)
+                    (let ((winner (unwrap-panic (map-get? participant-list (tuple (round round) (index winner-index)))))
+                          (winner-tickets (unwrap-panic (map-get? participant-tickets (tuple (round round) (participant winner))))))
+                        ;; Save current winner
+                        (var-set current-winner (some winner))
+                        
+                        ;; Save to history
+                        (map-set round-history round {
+                            winner: winner,
+                            ticket-count: winner-tickets,
+                            total-tickets: total-tickets-sold
+                        })
+                        
+                        (ok {
+                            round: round,
+                            winner: winner,
+                            winner-tickets: winner-tickets,
+                            total-tickets: total-tickets-sold
+                        })
+                    )
+                )
+            )
+        )
+    )
+)
