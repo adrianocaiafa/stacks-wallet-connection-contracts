@@ -115,3 +115,233 @@
     )
 )
 
+;; Helper to update quest type stats
+(define-private (update-quest-type-stats (quest-type (string-ascii 20)) (fee uint) (points uint))
+    (let ((current-stats (map-get? quest-type-stats quest-type)))
+        (if (is-none current-stats)
+            ;; First time this quest type is completed
+            (map-set quest-type-stats quest-type {
+                count: u1,
+                total-fees: fee,
+                total-points: points
+            })
+            ;; Update existing stats
+            (let ((stats (unwrap-panic current-stats)))
+                (map-set quest-type-stats quest-type {
+                    count: (+ (get count stats) u1),
+                    total-fees: (+ (get total-fees stats) fee),
+                    total-points: (+ (get total-points stats) points)
+                })
+            )
+        )
+    )
+)
+
+;; Helper to check cooldown
+(define-private (check-cooldown (user principal) (quest-type (string-ascii 20)) (current-block uint))
+    (if (is-eq quest-type "daily")
+        (let ((last-completion (default-to u0 (map-get? last-daily-quest user))))
+            (if (>= current-block (+ last-completion DAILY-COOLDOWN))
+                true
+                false
+            )
+        )
+        (if (is-eq quest-type "weekly")
+            (let ((last-completion (default-to u0 (map-get? last-weekly-quest user))))
+                (if (>= current-block (+ last-completion WEEKLY-COOLDOWN))
+                    true
+                    false
+                )
+            )
+            ;; Special quests have no cooldown
+            true
+        )
+    )
+)
+
+;; Main function to complete a quest
+(define-public (complete-quest (quest-type (string-ascii 20)) (fee-amount uint))
+    (let ((sender tx-sender)
+          (current-block (block-height))
+          (quest-time (var-get total-quests)))
+        
+        ;; Validate quest type and fee
+        (asserts! (> fee-amount u0) ERR-INSUFFICIENT-FEE)
+        
+        ;; Check quest type and get required fee and points
+        (let ((required-fee 
+            (if (is-eq quest-type "daily")
+                FEE-DAILY-QUEST
+                (if (is-eq quest-type "weekly")
+                    FEE-WEEKLY-QUEST
+                    (if (is-eq quest-type "special")
+                        FEE-SPECIAL-QUEST
+                        u0
+                    )
+                )
+            )))
+            (asserts! (> required-fee u0) ERR-INVALID-QUEST)
+            (asserts! (>= fee-amount required-fee) ERR-INSUFFICIENT-FEE)
+            
+            ;; Check cooldown
+            (asserts! (check-cooldown sender quest-type current-block) ERR-QUEST-ON-COOLDOWN)
+            
+            ;; Add user to list if new
+            (add-user-if-new sender)
+            
+            ;; Get quest points
+            (let ((quest-points
+                (if (is-eq quest-type "daily")
+                    POINTS-DAILY
+                    (if (is-eq quest-type "weekly")
+                        POINTS-WEEKLY
+                        POINTS-SPECIAL
+                    )
+                )))
+                
+                ;; Get user quest counter
+                (let ((user-quest-id (default-to u0 (map-get? user-quest-counter sender))))
+                    ;; Increment counters
+                    (map-set user-quest-counter sender (+ user-quest-id u1))
+                    (var-set total-quests (+ quest-time u1))
+                    
+                    ;; Update last completion time for cooldown
+                    (if (is-eq quest-type "daily")
+                        (map-set last-daily-quest sender current-block)
+                        (if (is-eq quest-type "weekly")
+                            (map-set last-weekly-quest sender current-block)
+                            true
+                        )
+                    )
+                    
+                    ;; Store in history
+                    (map-set quest-history (tuple (user sender) (quest-id user-quest-id)) {
+                        quest-type: quest-type,
+                        points: quest-points,
+                        timestamp: quest-time,
+                        block-height: current-block
+                    })
+                    
+                    ;; Update statistics
+                    (update-user-stats sender fee-amount quest-points quest-time)
+                    (update-quest-type-stats quest-type fee-amount quest-points)
+                    
+                    ;; STX is sent automatically with the transaction
+                    (ok {
+                        user: sender,
+                        quest-type: quest-type,
+                        points-earned: quest-points,
+                        quest-id: user-quest-id
+                    })
+                )
+            )
+        )
+    )
+)
+
+;; Public function: Complete daily quest
+(define-public (complete-daily-quest)
+    (complete-quest "daily" FEE-DAILY-QUEST)
+)
+
+;; Public function: Complete weekly quest
+(define-public (complete-weekly-quest)
+    (complete-quest "weekly" FEE-WEEKLY-QUEST)
+)
+
+;; Public function: Complete special quest
+(define-public (complete-special-quest)
+    (complete-quest "special" FEE-SPECIAL-QUEST)
+)
+
+;; Public function: Claim reward (generates additional transaction)
+(define-public (claim-quest-reward)
+    (let ((sender tx-sender)
+          (stats (map-get? user-stats sender)))
+        (asserts! (is-some stats) ERR-NO-REWARD-AVAILABLE)
+        
+        (let ((user-stats-value (unwrap-panic stats)))
+            ;; STX fee is sent with transaction
+            (ok {
+                user: sender,
+                total-points: (get total-points user-stats-value),
+                quest-master-level: (get quest-master-level user-stats-value),
+                total-quests: (get total-quests user-stats-value)
+            })
+        )
+    )
+)
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get user statistics
+(define-read-only (get-user-stats (user principal))
+    (map-get? user-stats user)
+)
+
+;; Read-only: Get quest type statistics
+(define-read-only (get-quest-type-stats (quest-type (string-ascii 20)))
+    (map-get? quest-type-stats quest-type)
+)
+
+;; Read-only: Get total quests
+(define-read-only (get-total-quests)
+    (var-get total-quests)
+)
+
+;; Read-only: Get total users
+(define-read-only (get-user-count)
+    (var-get user-count)
+)
+
+;; Read-only: Get user by index
+(define-read-only (get-user-at-index (index uint))
+    (map-get? user-list index)
+)
+
+;; Read-only: Get user quest history
+(define-read-only (get-user-quest (user principal) (quest-id uint))
+    (map-get? quest-history (tuple (user user) (quest-id quest-id)))
+)
+
+;; Read-only: Get user quest count
+(define-read-only (get-user-quest-count (user principal))
+    (default-to u0 (map-get? user-quest-counter user))
+)
+
+;; Read-only: Check if user can complete daily quest
+(define-read-only (can-complete-daily-quest (user principal))
+    (let ((current-block (block-height))
+          (last-completion (default-to u0 (map-get? last-daily-quest user))))
+        (>= current-block (+ last-completion DAILY-COOLDOWN))
+    )
+)
+
+;; Read-only: Check if user can complete weekly quest
+(define-read-only (can-complete-weekly-quest (user principal))
+    (let ((current-block (block-height))
+          (last-completion (default-to u0 (map-get? last-weekly-quest user))))
+        (>= current-block (+ last-completion WEEKLY-COOLDOWN))
+    )
+)
+
+;; Read-only: Get user with stats by index (for leaderboard)
+(define-read-only (get-user-at-index-with-stats (index uint))
+    (match (map-get? user-list index) address
+        (let ((stats (map-get? user-stats address)))
+            (match stats stats-value
+                (some {
+                    address: address,
+                    total-quests: (get total-quests stats-value),
+                    total-points: (get total-points stats-value),
+                    quest-master-level: (get quest-master-level stats-value),
+                    total-spent: (get total-spent stats-value)
+                })
+                none
+            )
+        )
+        none
+    )
+)
