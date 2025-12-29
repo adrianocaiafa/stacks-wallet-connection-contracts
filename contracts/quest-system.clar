@@ -16,3 +16,14 @@
 (define-constant FEE-SPECIAL-QUEST u20000)    ;; 0.02 STX
 (define-constant FEE-CLAIM-REWARD u10000)     ;; 0.01 STX
 
+;; Cooldown periods (in blocks, approximate)
+;; Daily: ~144 blocks (24 hours)
+;; Weekly: ~1008 blocks (7 days)
+(define-constant DAILY-COOLDOWN u144)
+(define-constant WEEKLY-COOLDOWN u1008)
+
+;; Points per quest type
+(define-constant POINTS-DAILY u10)
+(define-constant POINTS-WEEKLY u50)
+(define-constant POINTS-SPECIAL u20)
+
