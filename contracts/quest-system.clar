@@ -10,3 +10,9 @@
 (define-constant ERR-QUEST-ALREADY-COMPLETED (err u1004))
 (define-constant ERR-NO-REWARD-AVAILABLE (err u1005))
 
+;; Quest fees (in micro-STX)
+(define-constant FEE-DAILY-QUEST u10000)      ;; 0.01 STX
+(define-constant FEE-WEEKLY-QUEST u50000)     ;; 0.05 STX
+(define-constant FEE-SPECIAL-QUEST u20000)    ;; 0.02 STX
+(define-constant FEE-CLAIM-REWARD u10000)     ;; 0.01 STX
+
