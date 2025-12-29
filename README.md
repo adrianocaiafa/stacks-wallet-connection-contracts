@@ -48,6 +48,26 @@ Sistema de rifa/sorteio on-chain com alto engajamento.
 - `get-round-status`: Consultar status do round atual
 - `get-participant-tickets`: Consultar tickets de um participante
 
+### Quest System (`quest-system.clar`)
+Sistema de missões/quests on-chain com sistema de pontos e níveis.
+
+**Funcionalidades:**
+- 3 tipos de quests: daily (0.01 STX), weekly (0.05 STX), special (0.02 STX)
+- Sistema de cooldown para quests diárias e semanais
+- Sistema de pontos e níveis (Quest Master Level)
+- Histórico completo de quests completadas
+- Leaderboard de usuários
+- Reivindicação de recompensas (gera transação adicional)
+
+**Funções principais:**
+- `complete-daily-quest`: Completar quest diária
+- `complete-weekly-quest`: Completar quest semanal
+- `complete-special-quest`: Completar quest especial
+- `claim-quest-reward`: Reivindicar recompensa
+- `get-user-stats`: Consultar estatísticas do usuário
+- `can-complete-daily-quest`: Verificar se pode completar quest diária
+- `can-complete-weekly-quest`: Verificar se pode completar quest semanal
+
 ## Estrutura
 
 ```
