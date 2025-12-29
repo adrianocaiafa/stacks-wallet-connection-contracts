@@ -175,6 +175,10 @@
     )
 )
 
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
 ;; Read-only: Get current round status
 (define-read-only (get-round-status)
     {
