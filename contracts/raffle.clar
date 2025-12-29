@@ -122,6 +122,7 @@
             
             ;; Pick winner using simple pseudo-random
             ;; Uses total-tickets as seed for pseudo-random number
+            ;; This provides a deterministic but unpredictable selection
             (let ((participant-count-var (var-get participant-count)))
                 
                 ;; Calculate winner index: total-tickets % participant-count
