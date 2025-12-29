@@ -39,3 +39,19 @@
 ;; Map to track if user is in list
 (define-map user-index principal (optional uint))
 
+;; User statistics: user -> {total-quests, total-points, total-spent, quest-master-level}
+(define-map user-stats principal {
+    total-quests: uint,
+    total-points: uint,
+    total-spent: uint,
+    quest-master-level: uint
+})
+
+;; Quest completion history: (user, quest-id) -> {quest-type, points, timestamp, block-height}
+(define-map quest-history (tuple (user principal) (quest-id uint)) {
+    quest-type: (string-ascii 20),
+    points: uint,
+    timestamp: uint,
+    block-height: uint
+})
+
