@@ -119,3 +119,169 @@
     )
 )
 
+;; Public function: Daily check-in
+(define-public (check-in (fee-amount uint))
+    (let ((sender tx-sender)
+          (current-day (get-current-day)))
+        
+        ;; Validate fee
+        (asserts! (>= fee-amount CHECK-IN-FEE) ERR-INSUFFICIENT-FEE)
+        
+        ;; Get user stats
+        (let ((user-stats (map-get? user-check-ins sender)))
+            (match user-stats stats-value
+                ;; User has checked in before
+                (let ((stats stats-value)
+                      (last-day (get last-check-in-day stats)))
+                    ;; Check if already checked in today
+                    (asserts! (not (is-eq current-day last-day)) ERR-ALREADY-CHECKED-IN)
+                )
+                ;; New user - no previous check-in
+                true
+            )
+        )
+        
+        ;; Add user to list if new
+        (add-user-if-new sender)
+        
+        ;; Get user check-in counter
+        (let ((user-check-in-id (default-to u0 (map-get? user-check-in-counter sender))))
+            ;; Increment counters
+            (map-set user-check-in-counter sender (+ user-check-in-id u1))
+            (var-set total-check-ins (+ current-day u1))
+            
+            ;; Update user stats
+            (update-user-stats sender fee-amount current-day)
+            
+            ;; Get updated stats for response
+            (let ((updated-stats (unwrap-panic (map-get? user-check-ins sender))))
+                ;; Store in history
+                (map-set check-in-history (tuple (user sender) (check-in-id user-check-in-id)) {
+                    day: current-day,
+                    streak: (get current-streak updated-stats),
+                    points: POINTS-PER-CHECK-IN
+                })
+                
+                ;; STX is sent automatically with the transaction
+                (ok {
+                    user: sender,
+                    day: current-day,
+                    current-streak: (get current-streak updated-stats),
+                    longest-streak: (get longest-streak updated-stats),
+                    total-check-ins: (get total-check-ins updated-stats)
+                })
+            )
+        )
+    )
+)
+
+;; Public function: Claim milestone reward
+(define-public (claim-milestone-reward (milestone uint) (fee-amount uint))
+    (let ((sender tx-sender))
+        ;; Validate fee
+        (asserts! (>= fee-amount CHECK-IN-FEE) ERR-INSUFFICIENT-FEE)
+        
+        ;; Validate milestone
+        (asserts! (or (is-eq milestone MILESTONE-7-DAYS) 
+                      (is-eq milestone MILESTONE-30-DAYS) 
+                      (is-eq milestone MILESTONE-100-DAYS)) ERR-NO-REWARD-AVAILABLE)
+        
+        ;; Check if already claimed
+        (let ((already-claimed (default-to false (map-get? milestone-claims (tuple (user sender) (milestone milestone))))))
+            (asserts! (not already-claimed) ERR-NO-REWARD-AVAILABLE)
+        )
+        
+        ;; Get user stats
+        (match (map-get? user-check-ins sender) stats-value
+            (let ((stats stats-value)
+                  (current-streak (get current-streak stats)))
+                ;; Check if user reached milestone
+                (asserts! (>= current-streak milestone) ERR-NO-REWARD-AVAILABLE)
+                
+                ;; Mark milestone as claimed
+                (map-set milestone-claims (tuple (user sender) (milestone milestone)) true)
+                
+                ;; STX fee is sent with transaction
+                (ok {
+                    user: sender,
+                    milestone: milestone,
+                    current-streak: current-streak,
+                    claimed: true
+                })
+            )
+            (err ERR-NO-REWARD-AVAILABLE)
+        )
+    )
+)
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get user check-in statistics
+(define-read-only (get-user-stats (user principal))
+    (map-get? user-check-ins user)
+)
+
+;; Read-only: Get total check-ins
+(define-read-only (get-total-check-ins)
+    (var-get total-check-ins)
+)
+
+;; Read-only: Get total users
+(define-read-only (get-user-count)
+    (var-get user-count)
+)
+
+;; Read-only: Get user by index
+(define-read-only (get-user-at-index (index uint))
+    (map-get? user-list index)
+)
+
+;; Read-only: Get user check-in history
+(define-read-only (get-user-check-in (user principal) (check-in-id uint))
+    (map-get? check-in-history (tuple (user user) (check-in-id check-in-id)))
+)
+
+;; Read-only: Get user check-in count
+(define-read-only (get-user-check-in-count (user principal))
+    (default-to u0 (map-get? user-check-in-counter user))
+)
+
+;; Read-only: Check if user can check in today
+(define-read-only (can-check-in (user principal))
+    (let ((current-day (get-current-day))
+          (stats (map-get? user-check-ins user)))
+        (match stats stats-value
+            (let ((last-day (get last-check-in-day stats-value)))
+                (not (is-eq current-day last-day))
+            )
+            ;; New user can always check in
+            true
+        )
+    )
+)
+
+;; Read-only: Check if milestone is claimed
+(define-read-only (is-milestone-claimed (user principal) (milestone uint))
+    (default-to false (map-get? milestone-claims (tuple (user user) (milestone milestone))))
+)
+
+;; Read-only: Get user with stats by index (for leaderboard)
+(define-read-only (get-user-at-index-with-stats (index uint))
+    (match (map-get? user-list index) address
+        (let ((stats (map-get? user-check-ins address)))
+            (match stats stats-value
+                (some {
+                    address: address,
+                    total-check-ins: (get total-check-ins stats-value),
+                    current-streak: (get current-streak stats-value),
+                    longest-streak: (get longest-streak stats-value),
+                    total-points: (get total-points stats-value)
+                })
+                none
+            )
+        )
+        none
+    )
+)
