@@ -58,3 +58,44 @@
     )
 )
 
+;; Public function: Create a new poll (admin only)
+(define-public (create-poll (title (string-ascii 200)) (options (list 10 (string-ascii 100))))
+    (let ((sender tx-sender))
+        ;; Validate that sender is admin
+        (asserts! (is-eq sender (var-get admin)) ERR-NOT-ADMIN)
+        
+        ;; Validate options
+        (let ((option-count (len options)))
+            (asserts! (> option-count u1) ERR-INVALID-OPTION)  ;; At least 2 options
+            (asserts! (<= option-count MAX-OPTIONS) ERR-INVALID-OPTION)
+            
+            ;; Get new poll ID
+            (let ((new-poll-id (var-get poll-counter)))
+                ;; Increment poll counter
+                (var-set poll-counter (+ new-poll-id u1))
+                
+                ;; Create poll
+                (map-set polls new-poll-id {
+                    title: title,
+                    options: options,
+                    is-open: true,
+                    total-votes: u0,
+                    creator: sender
+                })
+                
+                ;; Set as active poll
+                (var-set active-poll-id (some new-poll-id))
+                
+                ;; Initialize vote counts for each option
+                (map-set poll-voter-count new-poll-id u0)
+                
+                (ok {
+                    poll-id: new-poll-id,
+                    title: title,
+                    options: options
+                })
+            )
+        )
+    )
+)
+
