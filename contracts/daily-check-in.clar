@@ -31,3 +31,25 @@
 ;; Map to track if user is in list
 (define-map user-index principal (optional uint))
 
+;; User check-in data: user -> {total-check-ins, current-streak, longest-streak, last-check-in-day, total-points}
+(define-map user-check-ins principal {
+    total-check-ins: uint,
+    current-streak: uint,
+    longest-streak: uint,
+    last-check-in-day: uint,
+    total-points: uint
+})
+
+;; Check-in history: (user, check-in-id) -> {day, streak, points}
+(define-map check-in-history (tuple (user principal) (check-in-id uint)) {
+    day: uint,
+    streak: uint,
+    points: uint
+})
+
+;; User check-in counter
+(define-map user-check-in-counter principal uint)
+
+;; Milestone rewards claimed: (user, milestone) -> claimed
+(define-map milestone-claims (tuple (user principal) (milestone uint)) bool)
+
