@@ -11,7 +11,7 @@
 ;; Dice roll fee (in micro-STX)
 (define-constant DICE-FEE u10000)  ;; 0.01 STX per roll
 
-;; Points awarded on win
+;; Points awarded on win (10 points per correct guess)
 (define-constant POINTS-ON-WIN u10)
 
 ;; Dice number range
