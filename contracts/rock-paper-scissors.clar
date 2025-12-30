@@ -19,3 +19,15 @@
 (define-constant PAPER u2)
 (define-constant SCISSORS u3)
 
+;; Total games counter
+(define-data-var total-games uint u0)
+
+;; Unique users counter
+(define-data-var user-count uint u0)
+
+;; List of unique users
+(define-map user-list uint principal)
+
+;; Map to track if user is in list
+(define-map user-index principal (optional uint))
+
