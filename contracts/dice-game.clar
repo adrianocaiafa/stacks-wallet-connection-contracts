@@ -103,3 +103,135 @@
     )
 )
 
+;; Public function: Roll dice
+(define-public (roll-dice (user-choice uint) (fee-amount uint))
+    (let ((sender tx-sender)
+          (roll-time (var-get total-rolls)))
+        
+        ;; Validate fee
+        (asserts! (>= fee-amount DICE-FEE) ERR-INSUFFICIENT-FEE)
+        
+        ;; Validate user choice (1-6)
+        (asserts! (>= user-choice DICE-MIN) ERR-INVALID-NUMBER)
+        (asserts! (<= user-choice DICE-MAX) ERR-INVALID-NUMBER)
+        
+        ;; Add user to list if new
+        (add-user-if-new sender)
+        
+        ;; Generate dice result using pseudo-random
+        ;; Uses total-rolls + user-choice as seed
+        (let ((random-seed (+ roll-time user-choice))
+              (dice-result (+ (mod random-seed u6) u1)))
+            
+            ;; Check if user won
+            (let ((won (is-eq user-choice dice-result))
+                  (points-earned (if won POINTS-ON-WIN u0)))
+                
+                ;; Get user roll counter
+                (let ((user-roll-id (default-to u0 (map-get? user-roll-counter sender))))
+                    ;; Increment counters
+                    (map-set user-roll-counter sender (+ user-roll-id u1))
+                    (var-set total-rolls (+ roll-time u1))
+                    
+                    ;; Update user stats
+                    (update-user-stats sender won points-earned roll-time)
+                    
+                    ;; Get updated stats for response
+                    (let ((updated-stats (unwrap-panic (map-get? user-stats sender))))
+                        ;; Store in history
+                        (map-set roll-history (tuple (user sender) (roll-id user-roll-id)) {
+                            user-choice: user-choice,
+                            dice-result: dice-result,
+                            won: won,
+                            points: points-earned,
+                            timestamp: roll-time
+                        })
+                        
+                        ;; STX is sent automatically with the transaction
+                        (ok {
+                            user: sender,
+                            user-choice: user-choice,
+                            dice-result: dice-result,
+                            won: won,
+                            points-earned: points-earned,
+                            win-streak: (get win-streak updated-stats)
+                        })
+                    )
+                )
+            )
+        )
+    )
+)
+
+;; Public function: Claim dice reward (generates additional transaction)
+(define-public (claim-dice-reward (fee-amount uint))
+    (let ((sender tx-sender)
+          (stats (map-get? user-stats sender)))
+        (asserts! (is-some stats) ERR-INSUFFICIENT-FEE)
+        
+        (let ((user-stats-value (unwrap-panic stats)))
+            ;; STX fee is sent with transaction
+            (ok {
+                user: sender,
+                total-points: (get total-points user-stats-value),
+                total-rolls: (get total-rolls user-stats-value),
+                wins: (get wins user-stats-value),
+                win-streak: (get win-streak user-stats-value)
+            })
+        )
+    )
+)
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get user statistics
+(define-read-only (get-user-stats (user principal))
+    (map-get? user-stats user)
+)
+
+;; Read-only: Get total rolls
+(define-read-only (get-total-rolls)
+    (var-get total-rolls)
+)
+
+;; Read-only: Get total users
+(define-read-only (get-user-count)
+    (var-get user-count)
+)
+
+;; Read-only: Get user by index
+(define-read-only (get-user-at-index (index uint))
+    (map-get? user-list index)
+)
+
+;; Read-only: Get user roll history
+(define-read-only (get-user-roll (user principal) (roll-id uint))
+    (map-get? roll-history (tuple (user user) (roll-id roll-id)))
+)
+
+;; Read-only: Get user roll count
+(define-read-only (get-user-roll-count (user principal))
+    (default-to u0 (map-get? user-roll-counter user))
+)
+
+;; Read-only: Get user with stats by index (for leaderboard)
+(define-read-only (get-user-at-index-with-stats (index uint))
+    (match (map-get? user-list index) address
+        (let ((stats (map-get? user-stats address)))
+            (match stats stats-value
+                (some {
+                    address: address,
+                    total-rolls: (get total-rolls stats-value),
+                    wins: (get wins stats-value),
+                    total-points: (get total-points stats-value),
+                    win-streak: (get win-streak stats-value),
+                    longest-streak: (get longest-streak stats-value)
+                })
+                none
+            )
+        )
+        none
+    )
+)
