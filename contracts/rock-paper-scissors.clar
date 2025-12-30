@@ -86,3 +86,43 @@
     )
 )
 
+;; Helper to update user stats after game
+(define-private (update-user-stats (user principal) (result (string-ascii 10)) (points uint) (game-time uint))
+    (let ((current-stats (map-get? user-stats user)))
+        (if (is-none current-stats)
+            ;; First game for user
+            (map-set user-stats user {
+                total-games: u1,
+                wins: (if (is-eq result "win") u1 u0),
+                losses: (if (is-eq result "loss") u1 u0),
+                draws: (if (is-eq result "draw") u1 u0),
+                total-points: points,
+                win-streak: (if (is-eq result "win") u1 u0),
+                longest-streak: (if (is-eq result "win") u1 u0)
+            })
+            ;; Update existing stats
+            (let ((stats (unwrap-panic current-stats)))
+                (let ((current-streak (get win-streak stats))
+                      (longest-streak (get longest-streak stats)))
+                    (let ((new-streak 
+                        (if (is-eq result "win")
+                            (+ current-streak u1)
+                            u0
+                        ))
+                        (new-longest (if (> new-streak longest-streak) new-streak longest-streak)))
+                        (map-set user-stats user {
+                            total-games: (+ (get total-games stats) u1),
+                            wins: (+ (get wins stats) (if (is-eq result "win") u1 u0)),
+                            losses: (+ (get losses stats) (if (is-eq result "loss") u1 u0)),
+                            draws: (+ (get draws stats) (if (is-eq result "draw") u1 u0)),
+                            total-points: (+ (get total-points stats) points),
+                            win-streak: new-streak,
+                            longest-streak: new-longest
+                        })
+                    )
+                )
+            )
+        )
+    )
+)
+
