@@ -71,3 +71,18 @@
     )
 )
 
+;; Helper to determine game result
+(define-private (determine-result (user-choice uint) (contract-choice uint))
+    (if (is-eq user-choice contract-choice)
+        "draw"
+        (if (or 
+            (and (is-eq user-choice ROCK) (is-eq contract-choice SCISSORS))
+            (and (is-eq user-choice PAPER) (is-eq contract-choice ROCK))
+            (and (is-eq user-choice SCISSORS) (is-eq contract-choice PAPER))
+        )
+        "win"
+        "loss"
+        )
+    )
+)
+
