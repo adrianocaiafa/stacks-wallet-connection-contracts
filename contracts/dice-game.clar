@@ -17,3 +17,15 @@
 (define-constant DICE-MIN u1)
 (define-constant DICE-MAX u6)
 
+;; Total rolls counter
+(define-data-var total-rolls uint u0)
+
+;; Unique users counter
+(define-data-var user-count uint u0)
+
+;; List of unique users
+(define-map user-list uint principal)
+
+;; Map to track if user is in list
+(define-map user-index principal (optional uint))
+
