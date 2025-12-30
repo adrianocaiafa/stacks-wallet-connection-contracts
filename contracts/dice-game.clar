@@ -119,7 +119,7 @@
         (add-user-if-new sender)
         
         ;; Generate dice result using pseudo-random
-        ;; Uses total-rolls + user-choice as seed
+        ;; Uses total-rolls + user-choice as seed for deterministic but unpredictable result
         (let ((random-seed (+ roll-time user-choice))
               (dice-result (+ (mod random-seed u6) u1)))
             
