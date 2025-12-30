@@ -104,11 +104,13 @@
             (let ((stats (unwrap-panic current-stats)))
                 (let ((current-streak (get win-streak stats))
                       (longest-streak (get longest-streak stats)))
+                    ;; Calculate new win streak (reset to 0 on loss/draw, increment on win)
                     (let ((new-streak 
                         (if (is-eq result "win")
                             (+ current-streak u1)
                             u0
                         ))
+                        ;; Update longest streak if current streak exceeds it
                         (new-longest (if (> new-streak longest-streak) new-streak longest-streak)))
                         (map-set user-stats user {
                             total-games: (+ (get total-games stats) u1),
