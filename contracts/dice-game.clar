@@ -7,3 +7,13 @@
 (define-constant ERR-INVALID-NUMBER (err u1001))
 (define-constant ERR-INSUFFICIENT-FEE (err u1002))
 
+;; Dice roll fee (in micro-STX)
+(define-constant DICE-FEE u10000)  ;; 0.01 STX per roll
+
+;; Points awarded on win
+(define-constant POINTS-ON-WIN u10)
+
+;; Dice number range
+(define-constant DICE-MIN u1)
+(define-constant DICE-MAX u6)
+
