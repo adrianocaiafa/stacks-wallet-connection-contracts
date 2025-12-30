@@ -67,3 +67,39 @@
     )
 )
 
+;; Helper to update user stats after roll
+(define-private (update-user-stats (user principal) (won bool) (points uint) (roll-time uint))
+    (let ((current-stats (map-get? user-stats user)))
+        (if (is-none current-stats)
+            ;; First roll for user
+            (map-set user-stats user {
+                total-rolls: u1,
+                wins: (if won u1 u0),
+                total-points: points,
+                win-streak: (if won u1 u0),
+                longest-streak: (if won u1 u0)
+            })
+            ;; Update existing stats
+            (let ((stats (unwrap-panic current-stats)))
+                (let ((current-streak (get win-streak stats))
+                      (longest-streak (get longest-streak stats)))
+                    (let ((new-streak 
+                        (if won
+                            (+ current-streak u1)
+                            u0
+                        ))
+                        (new-longest (if (> new-streak longest-streak) new-streak longest-streak)))
+                        (map-set user-stats user {
+                            total-rolls: (+ (get total-rolls stats) u1),
+                            wins: (+ (get wins stats) (if won u1 u0)),
+                            total-points: (+ (get total-points stats) points),
+                            win-streak: new-streak,
+                            longest-streak: new-longest
+                        })
+                    )
+                )
+            )
+        )
+    )
+)
+
