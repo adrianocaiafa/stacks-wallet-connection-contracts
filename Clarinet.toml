@@ -33,6 +33,10 @@ epoch = "latest"
 path = "contracts/daily-check-in.clar"
 epoch = "latest"
 
+[contracts.dice-game]
+path = "contracts/dice-game.clar"
+epoch = "latest"
+
 [repl.analysis]
 passes = ["check_checker"]
 check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
