@@ -50,3 +50,20 @@
 ;; User roll counter
 (define-map user-roll-counter principal uint)
 
+;; Helper to add user to list if new
+(define-private (add-user-if-new (user principal))
+    (let ((existing-index (map-get? user-index user)))
+        (if (is-none existing-index)
+            ;; New user, add to list
+            (let ((new-index (var-get user-count)))
+                (var-set user-count (+ new-index u1))
+                (map-set user-list new-index user)
+                (map-set user-index user (some new-index))
+                true
+            )
+            ;; Already in list
+            false
+        )
+    )
+)
+
