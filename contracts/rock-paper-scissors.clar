@@ -142,7 +142,7 @@
         (add-user-if-new sender)
         
         ;; Generate contract choice using pseudo-random
-        ;; Uses total-games + user-choice as seed
+        ;; Uses total-games + user-choice as seed for randomness
         (let ((random-seed (+ game-time user-choice))
               (contract-choice (+ (mod random-seed u3) u1)))
             
