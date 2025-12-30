@@ -89,6 +89,11 @@ plan:
             path: contracts/raffle.clar
             clarity-version: 4
         - emulated-contract-publish:
+            contract-name: rock-paper-scissors
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/rock-paper-scissors.clar
+            clarity-version: 4
+        - emulated-contract-publish:
             contract-name: tip-jar
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/tip-jar.clar
