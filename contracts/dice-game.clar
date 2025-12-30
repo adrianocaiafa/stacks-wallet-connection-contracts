@@ -29,3 +29,24 @@
 ;; Map to track if user is in list
 (define-map user-index principal (optional uint))
 
+;; User statistics: user -> {total-rolls, wins, total-points, win-streak, longest-streak}
+(define-map user-stats principal {
+    total-rolls: uint,
+    wins: uint,
+    total-points: uint,
+    win-streak: uint,
+    longest-streak: uint
+})
+
+;; Roll history: (user, roll-id) -> {user-choice, dice-result, won, points, timestamp}
+(define-map roll-history (tuple (user principal) (roll-id uint)) {
+    user-choice: uint,
+    dice-result: uint,
+    won: bool,
+    points: uint,
+    timestamp: uint
+})
+
+;; User roll counter
+(define-map user-roll-counter principal uint)
+
