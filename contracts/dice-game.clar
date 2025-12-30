@@ -84,6 +84,7 @@
             (let ((stats (unwrap-panic current-stats)))
                 (let ((current-streak (get win-streak stats))
                       (longest-streak (get longest-streak stats)))
+                    ;; Update win streak: increment if won, reset to 0 if lost
                     (let ((new-streak 
                         (if won
                             (+ current-streak u1)
