@@ -12,7 +12,7 @@
 (define-constant GAME-FEE u10000)  ;; 0.01 STX per game
 
 ;; Points awarded on win
-(define-constant POINTS-ON-WIN u10)
+(define-constant POINTS-ON-WIN u10)  ;; 10 points per win
 
 ;; Game choices: 1 = Rock, 2 = Paper, 3 = Scissors
 (define-constant ROCK u1)
