@@ -108,6 +108,25 @@ Sistema de check-in diário on-chain com rastreamento de streaks.
 - `is-milestone-claimed`: Verificar se milestone foi reivindicado
 - `get-user-at-index-with-stats`: Consultar usuário com stats (leaderboard)
 
+### Dice Game (`dice-game.clar`)
+Sistema de jogo de dado on-chain simples e direto.
+
+**Funcionalidades:**
+- Usuário escolhe número de 1-6
+- Contrato sorteia número de 1-6 usando pseudo-random
+- Se acertar, ganha pontos (10 pontos por acerto)
+- Sistema de win streak (sequência de vitórias)
+- Rastreamento de longest streak
+- Histórico completo de jogadas
+- Leaderboard de jogadores
+
+**Funções principais:**
+- `roll-dice`: Jogar dado escolhendo número (1-6)
+- `claim-dice-reward`: Reivindicar recompensa baseada em pontos
+- `get-user-stats`: Consultar estatísticas do usuário
+- `get-user-roll`: Consultar histórico de jogada específica
+- `get-user-at-index-with-stats`: Consultar usuário com stats (leaderboard)
+
 ## Estrutura
 
 ```
