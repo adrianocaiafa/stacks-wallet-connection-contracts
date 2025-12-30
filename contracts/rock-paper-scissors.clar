@@ -126,3 +126,138 @@
     )
 )
 
+;; Public function: Play rock paper scissors
+(define-public (play-game (user-choice uint) (fee-amount uint))
+    (let ((sender tx-sender)
+          (game-time (var-get total-games)))
+        
+        ;; Validate fee
+        (asserts! (>= fee-amount GAME-FEE) ERR-INSUFFICIENT-FEE)
+        
+        ;; Validate user choice (1-3)
+        (asserts! (>= user-choice ROCK) ERR-INVALID-CHOICE)
+        (asserts! (<= user-choice SCISSORS) ERR-INVALID-CHOICE)
+        
+        ;; Add user to list if new
+        (add-user-if-new sender)
+        
+        ;; Generate contract choice using pseudo-random
+        ;; Uses total-games + user-choice as seed
+        (let ((random-seed (+ game-time user-choice))
+              (contract-choice (+ (mod random-seed u3) u1)))
+            
+            ;; Determine result
+            (let ((result (determine-result user-choice contract-choice))
+                  (points-earned (if (is-eq result "win") POINTS-ON-WIN u0)))
+                
+                ;; Get user game counter
+                (let ((user-game-id (default-to u0 (map-get? user-game-counter sender))))
+                    ;; Increment counters
+                    (map-set user-game-counter sender (+ user-game-id u1))
+                    (var-set total-games (+ game-time u1))
+                    
+                    ;; Update user stats
+                    (update-user-stats sender result points-earned game-time)
+                    
+                    ;; Get updated stats for response
+                    (let ((updated-stats (unwrap-panic (map-get? user-stats sender))))
+                        ;; Store in history
+                        (map-set game-history (tuple (user sender) (game-id user-game-id)) {
+                            user-choice: user-choice,
+                            contract-choice: contract-choice,
+                            result: result,
+                            points: points-earned,
+                            timestamp: game-time
+                        })
+                        
+                        ;; STX is sent automatically with the transaction
+                        (ok {
+                            user: sender,
+                            user-choice: user-choice,
+                            contract-choice: contract-choice,
+                            result: result,
+                            points-earned: points-earned,
+                            win-streak: (get win-streak updated-stats)
+                        })
+                    )
+                )
+            )
+        )
+    )
+)
+
+;; Public function: Claim game reward (generates additional transaction)
+(define-public (claim-game-reward (fee-amount uint))
+    (let ((sender tx-sender)
+          (stats (map-get? user-stats sender)))
+        (asserts! (is-some stats) ERR-INSUFFICIENT-FEE)
+        
+        (let ((user-stats-value (unwrap-panic stats)))
+            ;; STX fee is sent with transaction
+            (ok {
+                user: sender,
+                total-points: (get total-points user-stats-value),
+                total-games: (get total-games user-stats-value),
+                wins: (get wins user-stats-value),
+                win-rate: (get win-streak user-stats-value)
+            })
+        )
+    )
+)
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get user statistics
+(define-read-only (get-user-stats (user principal))
+    (map-get? user-stats user)
+)
+
+;; Read-only: Get total games
+(define-read-only (get-total-games)
+    (var-get total-games)
+)
+
+;; Read-only: Get total users
+(define-read-only (get-user-count)
+    (var-get user-count)
+)
+
+;; Read-only: Get user by index
+(define-read-only (get-user-at-index (index uint))
+    (map-get? user-list index)
+)
+
+;; Read-only: Get user game history
+(define-read-only (get-user-game (user principal) (game-id uint))
+    (map-get? game-history (tuple (user user) (game-id game-id)))
+)
+
+;; Read-only: Get user game count
+(define-read-only (get-user-game-count (user principal))
+    (default-to u0 (map-get? user-game-counter user))
+)
+
+;; Read-only: Get user with stats by index (for leaderboard)
+(define-read-only (get-user-at-index-with-stats (index uint))
+    (match (map-get? user-list index) address
+        (let ((stats (map-get? user-stats address)))
+            (match stats stats-value
+                (some {
+                    address: address,
+                    total-games: (get total-games stats-value),
+                    wins: (get wins stats-value),
+                    losses: (get losses stats-value),
+                    draws: (get draws stats-value),
+                    total-points: (get total-points stats-value),
+                    win-streak: (get win-streak stats-value),
+                    longest-streak: (get longest-streak stats-value)
+                })
+                none
+            )
+        )
+        none
+    )
+)
+
