@@ -127,6 +127,26 @@ Sistema de jogo de dado on-chain simples e direto.
 - `get-user-roll`: Consultar histórico de jogada específica
 - `get-user-at-index-with-stats`: Consultar usuário com stats (leaderboard)
 
+### Rock Paper Scissors (`rock-paper-scissors.clar`)
+Sistema de jogo pedra-papel-tesoura on-chain simples e direto.
+
+**Funcionalidades:**
+- Usuário escolhe pedra (1), papel (2) ou tesoura (3)
+- Contrato escolhe aleatoriamente usando pseudo-random
+- Sistema de vitória/derrota/empate
+- Se ganhar, ganha pontos (10 pontos por vitória)
+- Sistema de win streak (sequência de vitórias)
+- Rastreamento de win rate (wins, losses, draws)
+- Histórico completo de jogadas
+- Leaderboard de jogadores
+
+**Funções principais:**
+- `play-game`: Jogar escolhendo pedra, papel ou tesoura
+- `claim-game-reward`: Reivindicar recompensa baseada em pontos
+- `get-user-stats`: Consultar estatísticas do usuário (wins, losses, draws, win rate)
+- `get-user-game`: Consultar histórico de jogo específico
+- `get-user-at-index-with-stats`: Consultar usuário com stats (leaderboard)
+
 ## Estrutura
 
 ```
