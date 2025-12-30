@@ -31,3 +31,26 @@
 ;; Map to track if user is in list
 (define-map user-index principal (optional uint))
 
+;; User statistics: user -> {total-games, wins, losses, draws, total-points, win-streak, longest-streak}
+(define-map user-stats principal {
+    total-games: uint,
+    wins: uint,
+    losses: uint,
+    draws: uint,
+    total-points: uint,
+    win-streak: uint,
+    longest-streak: uint
+})
+
+;; Game history: (user, game-id) -> {user-choice, contract-choice, result, points, timestamp}
+(define-map game-history (tuple (user principal) (game-id uint)) {
+    user-choice: uint,
+    contract-choice: uint,
+    result: (string-ascii 10),
+    points: uint,
+    timestamp: uint
+})
+
+;; User game counter
+(define-map user-game-counter principal uint)
+
