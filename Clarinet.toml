@@ -37,6 +37,10 @@ epoch = "latest"
 path = "contracts/dice-game.clar"
 epoch = "latest"
 
+[contracts.rock-paper-scissors]
+path = "contracts/rock-paper-scissors.clar"
+epoch = "latest"
+
 [repl.analysis]
 passes = ["check_checker"]
 check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
