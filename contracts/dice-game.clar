@@ -2,6 +2,7 @@
 ;; Simple dice rolling game on-chain
 ;; Users choose a number (1-6), contract rolls dice, if match wins points
 ;; Each roll generates transaction fees
+;; Simple and direct gameplay for high engagement
 
 ;; Error codes
 (define-constant ERR-INVALID-NUMBER (err u1001))
