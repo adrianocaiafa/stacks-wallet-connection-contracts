@@ -126,8 +126,8 @@
         (add-user-if-new sender)
         
         ;; Generate coin result using pseudo-random
-        ;; Uses total-flips + user-choice + block-height for better randomness
-        (let ((random-seed (+ (+ flip-time user-choice) block-height))
+        ;; Uses total-flips + user-choice + stacks-block-height for better randomness
+        (let ((random-seed (+ (+ flip-time user-choice) stacks-block-height))
               (coin-result (mod random-seed u2)))
             
             ;; Check if user won
