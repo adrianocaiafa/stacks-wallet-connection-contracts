@@ -463,3 +463,58 @@
         u0
     )
 )
+
+;; Public function: Give up current game
+(define-public (give-up)
+    (let ((player tx-sender))
+        ;; Get active game
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((secret (get secret-code game))
+                      (attempts-used (get attempts-used game)))
+                    
+                    ;; Remove active game
+                    (map-delete active-games player)
+                    
+                    ;; Update stats (loss)
+                    (let ((stats-opt (map-get? player-stats player)))
+                        (match stats-opt stats-value
+                            (map-set player-stats player {
+                                total-games: (+ (get total-games stats-value) u1),
+                                wins: (get wins stats-value),
+                                total-attempts: (+ (get total-attempts stats-value) attempts-used),
+                                best-attempts: (get best-attempts stats-value),
+                                perfect-games: (get perfect-games stats-value)
+                            })
+                            (map-set player-stats player {
+                                total-games: u1,
+                                wins: u0,
+                                total-attempts: attempts-used,
+                                best-attempts: u0,
+                                perfect-games: u0
+                            })
+                        )
+                    )
+                    
+                    ;; Save to history
+                    (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                        (map-set player-game-counter player (+ player-game-id u1))
+                        (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                            secret-code: secret,
+                            attempts-used: attempts-used,
+                            won: false,
+                            score: u0
+                        })
+                    )
+                    
+                    (ok {
+                        message: "Game over! The secret code was:",
+                        secret-code: secret,
+                        attempts-used: attempts-used
+                    })
+                )
+            )
+        )
+    )
+)
