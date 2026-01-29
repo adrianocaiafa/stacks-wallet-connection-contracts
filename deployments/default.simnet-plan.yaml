@@ -84,6 +84,21 @@ plan:
             path: contracts/gas-meter.clar
             clarity-version: 4
         - emulated-contract-publish:
+            contract-name: hidden-formula
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/hidden-formula.clar
+            clarity-version: 4
+        - emulated-contract-publish:
+            contract-name: mastermind
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/mastermind.clar
+            clarity-version: 4
+        - emulated-contract-publish:
+            contract-name: multi-target
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/multi-target.clar
+            clarity-version: 4
+        - emulated-contract-publish:
             contract-name: number-guess-pro
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/number-guess-pro.clar

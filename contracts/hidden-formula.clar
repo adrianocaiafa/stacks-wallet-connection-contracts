@@ -1,7 +1,7 @@
 ;; Hidden Formula Contract
 ;; Discover the secret mathematical formula by testing inputs
 ;; You send numbers, get results, deduce the formula
-;; Examples: f(x) = x² + 3, f(x) = 2x - 5, etc.
+;; Examples: f(x) = x^2 + 3, f(x) = 2x - 5, etc.
 ;; No fees, just gas - scientific deduction gameplay
 
 ;; Error codes
@@ -14,14 +14,14 @@
 (define-constant MAX-INPUT u20)
 (define-constant MAX-ATTEMPTS u12)
 
-;; Formula types (coefficients stored as: a, b, c for ax² + bx + c)
+;; Formula types (coefficients stored as: a, b, c for ax^2 + bx + c)
 (define-data-var total-games uint u0)
 (define-data-var player-count uint u0)
 
 (define-map player-list uint principal)
 (define-map player-index principal (optional uint))
 
-;; Game state: formula is ax² + bx + c
+;; Game state: formula is ax^2 + bx + c
 (define-map active-games principal {
     coef-a: uint,
     coef-b: uint,
@@ -66,7 +66,7 @@
     )
 )
 
-;; Generate formula: ax² + bx + c where a∈[0,3], b∈[0,5], c∈[0,10]
+;; Generate formula: ax^2 + bx + c where a in [0,3], b in [0,5], c in [0,10]
 (define-private (generate-formula (seed uint))
     (let ((base (+ (+ (* seed u997) stacks-block-height) (var-get player-count))))
         {
@@ -77,7 +77,7 @@
     )
 )
 
-;; Calculate f(x) = ax² + bx + c
+;; Calculate f(x) = ax^2 + bx + c
 (define-private (apply-formula (x uint) (a uint) (b uint) (c uint))
     (+ (* a (* x x)) (+ (* b x) c))
 )
@@ -100,7 +100,7 @@
                 (var-set total-games (+ game-counter u1))
                 (ok {
                     game-id: game-counter,
-                    message: "Discover the formula: f(x) = ax² + bx + c",
+                    message: "Discover the formula: f(x) = ax^2 + bx + c",
                     hints: "a: 0-3, b: 0-5, c: 0-10",
                     attempts-left: MAX-ATTEMPTS
                 })
@@ -178,9 +178,9 @@
                                     won: true
                                 })
                             )
-                            (ok {result: "victory", formula: (tuple (a a) (b b) (c c)), attempts-used: attempts-used})
+                            (ok {result: "victory", formula: (some (tuple (a a) (b b) (c c))), attempts-used: attempts-used, message: "Correct!"})
                         )
-                        (ok {result: "incorrect", message: "Not the right formula, keep testing!"})
+                        (ok {result: "incorrect", formula: none, attempts-used: attempts-used, message: "Not the right formula"})
                     )
                 )
             )
