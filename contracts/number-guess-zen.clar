@@ -113,3 +113,109 @@
         )
     )
 )
+
+;; Public function: Make a guess
+(define-public (guess (number uint))
+    (let ((player tx-sender))
+        ;; Validate number range
+        (asserts! (>= number MIN-NUMBER) ERR-INVALID-NUMBER)
+        (asserts! (<= number MAX-NUMBER) ERR-INVALID-NUMBER)
+        
+        ;; Get active game
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((secret (get secret-number game))
+                      (attempts (get attempts game))
+                      (game-id (get game-id game))
+                      (hint-used (get hint-used game)))
+                    
+                    ;; Increment attempts
+                    (let ((new-attempts (+ attempts u1)))
+                        (if (is-eq number secret)
+                            ;; Correct guess! End game
+                            (begin
+                                ;; Remove active game
+                                (map-delete active-games player)
+                                
+                                ;; Update stats
+                                (let ((stats-opt (map-get? player-stats player)))
+                                    (if (is-none stats-opt)
+                                        ;; First game
+                                        (map-set player-stats player {
+                                            total-games: u1,
+                                            total-attempts: new-attempts,
+                                            best-attempts: new-attempts,
+                                            current-streak: u1,
+                                            longest-streak: u1
+                                        })
+                                        ;; Update existing stats
+                                        (let ((stats (unwrap-panic stats-opt)))
+                                            (let ((current-streak (get current-streak stats))
+                                                  (longest-streak (get longest-streak stats))
+                                                  (best-attempts (get best-attempts stats)))
+                                                (let ((new-streak (+ current-streak u1))
+                                                      (new-longest (if (> (+ current-streak u1) longest-streak) 
+                                                                      (+ current-streak u1) 
+                                                                      longest-streak))
+                                                      (new-best (if (< new-attempts best-attempts) 
+                                                                   new-attempts 
+                                                                   best-attempts)))
+                                                    (map-set player-stats player {
+                                                        total-games: (+ (get total-games stats) u1),
+                                                        total-attempts: (+ (get total-attempts stats) new-attempts),
+                                                        best-attempts: new-best,
+                                                        current-streak: new-streak,
+                                                        longest-streak: new-longest
+                                                    })
+                                                )
+                                            )
+                                        )
+                                    )
+                                )
+                                
+                                ;; Save to history
+                                (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                    (map-set player-game-counter player (+ player-game-id u1))
+                                    (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                                        secret-number: secret,
+                                        attempts: new-attempts,
+                                        won: true,
+                                        hint-used: hint-used
+                                    })
+                                )
+                                
+                                (ok {
+                                    result: "correct",
+                                    number: secret,
+                                    attempts: new-attempts,
+                                    message: "Congratulations! You guessed it!",
+                                    hint-used: hint-used
+                                })
+                            )
+                            ;; Wrong guess - update attempts and give hint
+                            (begin
+                                ;; Update game state
+                                (map-set active-games player {
+                                    secret-number: secret,
+                                    attempts: new-attempts,
+                                    hint-used: hint-used,
+                                    game-id: game-id
+                                })
+                                
+                                (ok {
+                                    result: (if (> number secret) "lower" "higher"),
+                                    attempts: new-attempts,
+                                    message: (if (> number secret) 
+                                               "Try a lower number!" 
+                                               "Try a higher number!"),
+                                    hint-used: hint-used
+                                })
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
