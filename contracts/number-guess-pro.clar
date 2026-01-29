@@ -127,3 +127,160 @@
         )
     )
 )
+
+;; Public function: Make a guess
+(define-public (guess (number uint))
+    (let ((player tx-sender))
+        ;; Validate number range
+        (asserts! (>= number MIN-NUMBER) ERR-INVALID-NUMBER)
+        (asserts! (<= number MAX-NUMBER) ERR-INVALID-NUMBER)
+        
+        ;; Get active game
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((secret (get secret-number game))
+                      (attempts-left (get attempts-left game))
+                      (attempts-used (get attempts-used game))
+                      (game-id (get game-id game))
+                      (hint-used (get hint-used game)))
+                    
+                    ;; Check if still has attempts
+                    (asserts! (> attempts-left u0) ERR-NO-ATTEMPTS-LEFT)
+                    
+                    ;; Consume attempt
+                    (let ((new-attempts-left (- attempts-left u1))
+                          (new-attempts-used (+ attempts-used u1)))
+                        
+                        (if (is-eq number secret)
+                            ;; Correct guess! End game with score
+                            (let ((score (calculate-score new-attempts-used)))
+                                ;; Remove active game
+                                (map-delete active-games player)
+                                
+                                ;; Update stats
+                                (let ((stats-opt (map-get? player-stats player)))
+                                    (if (is-none stats-opt)
+                                        ;; First game
+                                        (map-set player-stats player {
+                                            total-games: u1,
+                                            wins: u1,
+                                            total-score: score,
+                                            best-score: score,
+                                            perfect-games: (if (is-eq new-attempts-used u1) u1 u0)
+                                        })
+                                        ;; Update existing stats
+                                        (let ((stats (unwrap-panic stats-opt)))
+                                            (map-set player-stats player {
+                                                total-games: (+ (get total-games stats) u1),
+                                                wins: (+ (get wins stats) u1),
+                                                total-score: (+ (get total-score stats) score),
+                                                best-score: (if (> score (get best-score stats)) 
+                                                              score 
+                                                              (get best-score stats)),
+                                                perfect-games: (+ (get perfect-games stats) 
+                                                                 (if (is-eq new-attempts-used u1) u1 u0))
+                                            })
+                                        )
+                                    )
+                                )
+                                
+                                ;; Save to history
+                                (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                    (map-set player-game-counter player (+ player-game-id u1))
+                                    (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                                        secret-number: secret,
+                                        attempts-used: new-attempts-used,
+                                        won: true,
+                                        score: score,
+                                        hint-used: hint-used
+                                    })
+                                )
+                                
+                                (ok {
+                                    result: "correct",
+                                    attempts-used: new-attempts-used,
+                                    score: score,
+                                    message: "Victory!",
+                                    hint-used: hint-used,
+                                    number: (some secret)
+                                })
+                            )
+                            ;; Wrong guess
+                            (if (is-eq new-attempts-left u0)
+                                ;; Game over - no more attempts
+                                (begin
+                                    ;; Remove active game
+                                    (map-delete active-games player)
+                                    
+                                    ;; Update stats (loss)
+                                    (let ((stats-opt (map-get? player-stats player)))
+                                        (match stats-opt stats-value
+                                            (map-set player-stats player {
+                                                total-games: (+ (get total-games stats-value) u1),
+                                                wins: (get wins stats-value),
+                                                total-score: (get total-score stats-value),
+                                                best-score: (get best-score stats-value),
+                                                perfect-games: (get perfect-games stats-value)
+                                            })
+                                            (map-set player-stats player {
+                                                total-games: u1,
+                                                wins: u0,
+                                                total-score: u0,
+                                                best-score: u0,
+                                                perfect-games: u0
+                                            })
+                                        )
+                                    )
+                                    
+                                    ;; Save to history
+                                    (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                        (map-set player-game-counter player (+ player-game-id u1))
+                                        (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                                            secret-number: secret,
+                                            attempts-used: new-attempts-used,
+                                            won: false,
+                                            score: u0,
+                                            hint-used: hint-used
+                                        })
+                                    )
+                                    
+                                    (ok {
+                                        result: "game-over",
+                                        attempts-used: new-attempts-used,
+                                        score: u0,
+                                        message: "No attempts left!",
+                                        hint-used: hint-used,
+                                        number: (some secret)
+                                    })
+                                )
+                                ;; Continue playing
+                                (begin
+                                    ;; Update game state
+                                    (map-set active-games player {
+                                        secret-number: secret,
+                                        attempts-left: new-attempts-left,
+                                        attempts-used: new-attempts-used,
+                                        hint-used: hint-used,
+                                        game-id: game-id
+                                    })
+                                    
+                                    (ok {
+                                        result: (if (> number secret) "lower" "higher"),
+                                        attempts-used: new-attempts-used,
+                                        score: u0,
+                                        message: (if (> number secret) 
+                                                   "Try lower!" 
+                                                   "Try higher!"),
+                                        hint-used: hint-used,
+                                        number: none
+                                    })
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
