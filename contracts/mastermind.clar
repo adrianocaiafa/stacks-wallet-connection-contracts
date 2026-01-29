@@ -193,3 +193,160 @@
 (define-private (min (a uint) (b uint))
     (if (< a b) a b)
 )
+
+;; Public function: Make a guess
+(define-public (guess (code (list 5 uint)))
+    (let ((player tx-sender))
+        ;; Validate code format
+        (asserts! (validate-code code) ERR-INVALID-CODE)
+        
+        ;; Get active game
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((secret (get secret-code game))
+                      (attempts-left (get attempts-left game))
+                      (attempts-used (get attempts-used game))
+                      (game-id (get game-id game)))
+                    
+                    ;; Check if still has attempts
+                    (asserts! (> attempts-left u0) ERR-NO-ATTEMPTS-LEFT)
+                    
+                    ;; Calculate feedback
+                    (let ((feedback (calculate-feedback code secret))
+                          (exact (get exact feedback))
+                          (partial (get partial feedback))
+                          (new-attempts-left (- attempts-left u1))
+                          (new-attempts-used (+ attempts-used u1)))
+                        
+                        ;; Store attempt in history
+                        (map-set attempt-history (tuple (player player) (attempt-num attempts-used)) {
+                            code: code,
+                            exact-matches: exact,
+                            partial-matches: partial
+                        })
+                        
+                        ;; Check if won
+                        (if (is-eq exact CODE-LENGTH)
+                            ;; Victory!
+                            (let ((score (- u1100 (* new-attempts-used u100))))
+                                ;; Remove active game
+                                (map-delete active-games player)
+                                
+                                ;; Update stats
+                                (let ((stats-opt (map-get? player-stats player)))
+                                    (if (is-none stats-opt)
+                                        (map-set player-stats player {
+                                            total-games: u1,
+                                            wins: u1,
+                                            total-attempts: new-attempts-used,
+                                            best-attempts: new-attempts-used,
+                                            perfect-games: (if (is-eq new-attempts-used u1) u1 u0)
+                                        })
+                                        (let ((stats (unwrap-panic stats-opt)))
+                                            (map-set player-stats player {
+                                                total-games: (+ (get total-games stats) u1),
+                                                wins: (+ (get wins stats) u1),
+                                                total-attempts: (+ (get total-attempts stats) new-attempts-used),
+                                                best-attempts: (if (< new-attempts-used (get best-attempts stats))
+                                                                  new-attempts-used
+                                                                  (get best-attempts stats)),
+                                                perfect-games: (+ (get perfect-games stats)
+                                                                 (if (is-eq new-attempts-used u1) u1 u0))
+                                            })
+                                        )
+                                    )
+                                )
+                                
+                                ;; Save to history
+                                (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                    (map-set player-game-counter player (+ player-game-id u1))
+                                    (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                                        secret-code: secret,
+                                        attempts-used: new-attempts-used,
+                                        won: true,
+                                        score: score
+                                    })
+                                )
+                                
+                                (ok {
+                                    result: "victory",
+                                    exact-matches: exact,
+                                    partial-matches: partial,
+                                    attempts-used: new-attempts-used,
+                                    score: score,
+                                    secret-code: (some secret)
+                                })
+                            )
+                            ;; Not yet won
+                            (if (is-eq new-attempts-left u0)
+                                ;; Game over - no more attempts
+                                (begin
+                                    (map-delete active-games player)
+                                    
+                                    ;; Update stats (loss)
+                                    (let ((stats-opt (map-get? player-stats player)))
+                                        (match stats-opt stats-value
+                                            (map-set player-stats player {
+                                                total-games: (+ (get total-games stats-value) u1),
+                                                wins: (get wins stats-value),
+                                                total-attempts: (+ (get total-attempts stats-value) new-attempts-used),
+                                                best-attempts: (get best-attempts stats-value),
+                                                perfect-games: (get perfect-games stats-value)
+                                            })
+                                            (map-set player-stats player {
+                                                total-games: u1,
+                                                wins: u0,
+                                                total-attempts: new-attempts-used,
+                                                best-attempts: u0,
+                                                perfect-games: u0
+                                            })
+                                        )
+                                    )
+                                    
+                                    ;; Save to history
+                                    (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                        (map-set player-game-counter player (+ player-game-id u1))
+                                        (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                                            secret-code: secret,
+                                            attempts-used: new-attempts-used,
+                                            won: false,
+                                            score: u0
+                                        })
+                                    )
+                                    
+                                    (ok {
+                                        result: "game-over",
+                                        exact-matches: exact,
+                                        partial-matches: partial,
+                                        attempts-used: new-attempts-used,
+                                        score: u0,
+                                        secret-code: (some secret)
+                                    })
+                                )
+                                ;; Continue playing
+                                (begin
+                                    (map-set active-games player {
+                                        secret-code: secret,
+                                        attempts-left: new-attempts-left,
+                                        attempts-used: new-attempts-used,
+                                        game-id: game-id
+                                    })
+                                    
+                                    (ok {
+                                        result: "continue",
+                                        exact-matches: exact,
+                                        partial-matches: partial,
+                                        attempts-used: new-attempts-used,
+                                        score: u0,
+                                        secret-code: none
+                                    })
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
