@@ -140,3 +140,56 @@
         )
     )
 )
+
+;; Helper to count exact matches (right digit, right position)
+(define-private (count-exact-matches (guess (list 5 uint)) (secret (list 5 uint)))
+    (let ((matches
+        (+ (if (is-eq (unwrap-panic (element-at? guess u0)) (unwrap-panic (element-at? secret u0))) u1 u0)
+           (if (is-eq (unwrap-panic (element-at? guess u1)) (unwrap-panic (element-at? secret u1))) u1 u0)
+           (if (is-eq (unwrap-panic (element-at? guess u2)) (unwrap-panic (element-at? secret u2))) u1 u0)
+           (if (is-eq (unwrap-panic (element-at? guess u3)) (unwrap-panic (element-at? secret u3))) u1 u0)
+           (if (is-eq (unwrap-panic (element-at? guess u4)) (unwrap-panic (element-at? secret u4))) u1 u0))))
+        matches
+    )
+)
+
+;; Helper to count occurrences of a digit in code
+(define-private (count-digit-in-code (digit uint) (code (list 5 uint)))
+    (+ (if (is-eq (unwrap-panic (element-at? code u0)) digit) u1 u0)
+       (if (is-eq (unwrap-panic (element-at? code u1)) digit) u1 u0)
+       (if (is-eq (unwrap-panic (element-at? code u2)) digit) u1 u0)
+       (if (is-eq (unwrap-panic (element-at? code u3)) digit) u1 u0)
+       (if (is-eq (unwrap-panic (element-at? code u4)) digit) u1 u0))
+)
+
+;; Helper to count total matches (including wrong positions)
+(define-private (count-total-matches (guess (list 5 uint)) (secret (list 5 uint)))
+    (let ((d0 (min (count-digit-in-code u0 guess) (count-digit-in-code u0 secret)))
+          (d1 (min (count-digit-in-code u1 guess) (count-digit-in-code u1 secret)))
+          (d2 (min (count-digit-in-code u2 guess) (count-digit-in-code u2 secret)))
+          (d3 (min (count-digit-in-code u3 guess) (count-digit-in-code u3 secret)))
+          (d4 (min (count-digit-in-code u4 guess) (count-digit-in-code u4 secret)))
+          (d5 (min (count-digit-in-code u5 guess) (count-digit-in-code u5 secret)))
+          (d6 (min (count-digit-in-code u6 guess) (count-digit-in-code u6 secret)))
+          (d7 (min (count-digit-in-code u7 guess) (count-digit-in-code u7 secret)))
+          (d8 (min (count-digit-in-code u8 guess) (count-digit-in-code u8 secret)))
+          (d9 (min (count-digit-in-code u9 guess) (count-digit-in-code u9 secret))))
+        (+ d0 d1 d2 d3 d4 d5 d6 d7 d8 d9)
+    )
+)
+
+;; Helper to calculate partial matches (right digit, wrong position)
+(define-private (calculate-feedback (guess (list 5 uint)) (secret (list 5 uint)))
+    (let ((exact (count-exact-matches guess secret))
+          (total (count-total-matches guess secret)))
+        {
+            exact: exact,
+            partial: (- total exact)
+        }
+    )
+)
+
+;; Helper min function
+(define-private (min (a uint) (b uint))
+    (if (< a b) a b)
+)
