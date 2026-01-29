@@ -133,3 +133,147 @@
         )
     )
 )
+
+;; Helper to count exact matches (right number, right position)
+(define-private (count-exact-matches (user-guess (list 3 uint)) (targets (list 3 uint)))
+    (+ (if (is-eq (unwrap-panic (element-at? user-guess u0)) (unwrap-panic (element-at? targets u0))) u1 u0)
+       (if (is-eq (unwrap-panic (element-at? user-guess u1)) (unwrap-panic (element-at? targets u1))) u1 u0)
+       (if (is-eq (unwrap-panic (element-at? user-guess u2)) (unwrap-panic (element-at? targets u2))) u1 u0))
+)
+
+;; Public function: Make a guess
+(define-public (guess (numbers (list 3 uint)))
+    (let ((player tx-sender))
+        (asserts! (validate-guess numbers) ERR-INVALID-GUESS)
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((targets (get targets game))
+                      (target-sum (get target-sum game))
+                      (attempts-left (get attempts-left game))
+                      (attempts-used (get attempts-used game))
+                      (game-id (get game-id game)))
+                    (asserts! (> attempts-left u0) ERR-NO-ATTEMPTS-LEFT)
+                    (let ((guess-sum (sum-list numbers))
+                          (exact-matches (count-exact-matches numbers targets))
+                          (new-attempts-left (- attempts-left u1))
+                          (new-attempts-used (+ attempts-used u1)))
+                        (map-set attempt-history (tuple (player player) (attempt-num attempts-used)) {
+                            guess: numbers,
+                            exact-matches: exact-matches
+                        })
+                        (if (is-eq exact-matches TARGET-COUNT)
+                            ;; Victory!
+                            (begin
+                                (map-delete active-games player)
+                                (let ((stats-opt (map-get? player-stats player)))
+                                    (if (is-none stats-opt)
+                                        (map-set player-stats player {total-games: u1, wins: u1, best-attempts: new-attempts-used})
+                                        (let ((stats (unwrap-panic stats-opt)))
+                                            (map-set player-stats player {
+                                                total-games: (+ (get total-games stats) u1),
+                                                wins: (+ (get wins stats) u1),
+                                                best-attempts: (if (< new-attempts-used (get best-attempts stats)) new-attempts-used (get best-attempts stats))
+                                            })
+                                        )
+                                    )
+                                )
+                                (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                    (map-set player-game-counter player (+ player-game-id u1))
+                                    (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                                        targets: targets,
+                                        target-sum: target-sum,
+                                        attempts-used: new-attempts-used,
+                                        won: true
+                                    })
+                                )
+                                (ok {result: "victory", exact-matches: exact-matches, guess-sum: guess-sum, target-sum: target-sum, attempts-used: new-attempts-used, targets: (some targets)})
+                            )
+                            (if (is-eq new-attempts-left u0)
+                                ;; Game over
+                                (begin
+                                    (map-delete active-games player)
+                                    (let ((stats-opt (map-get? player-stats player)))
+                                        (match stats-opt stats-value
+                                            (map-set player-stats player {total-games: (+ (get total-games stats-value) u1), wins: (get wins stats-value), best-attempts: (get best-attempts stats-value)})
+                                            (map-set player-stats player {total-games: u1, wins: u0, best-attempts: u0})
+                                        )
+                                    )
+                                    (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                                        (map-set player-game-counter player (+ player-game-id u1))
+                                        (map-set game-history (tuple (player player) (game-id player-game-id)) {targets: targets, target-sum: target-sum, attempts-used: new-attempts-used, won: false})
+                                    )
+                                    (ok {result: "game-over", exact-matches: exact-matches, guess-sum: guess-sum, target-sum: target-sum, attempts-used: new-attempts-used, targets: (some targets)})
+                                )
+                                ;; Continue
+                                (begin
+                                    (map-set active-games player {targets: targets, target-sum: target-sum, attempts-left: new-attempts-left, attempts-used: new-attempts-used, game-id: game-id})
+                                    (ok {result: "continue", exact-matches: exact-matches, guess-sum: guess-sum, target-sum: target-sum, attempts-used: new-attempts-used, targets: none})
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
+
+;; Public function: Give up
+(define-public (give-up)
+    (let ((player tx-sender))
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((targets (get targets game))
+                      (target-sum (get target-sum game))
+                      (attempts-used (get attempts-used game)))
+                    (map-delete active-games player)
+                    (let ((stats-opt (map-get? player-stats player)))
+                        (match stats-opt stats-value
+                            (map-set player-stats player {total-games: (+ (get total-games stats-value) u1), wins: (get wins stats-value), best-attempts: (get best-attempts stats-value)})
+                            (map-set player-stats player {total-games: u1, wins: u0, best-attempts: u0})
+                        )
+                    )
+                    (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                        (map-set player-game-counter player (+ player-game-id u1))
+                        (map-set game-history (tuple (player player) (game-id player-game-id)) {targets: targets, target-sum: target-sum, attempts-used: attempts-used, won: false})
+                    )
+                    (ok {message: "Targets were:", targets: targets, target-sum: target-sum})
+                )
+            )
+        )
+    )
+)
+
+;; Read-only functions
+(define-read-only (get-active-game (player principal))
+    (match (map-get? active-games player) game
+        (some {target-sum: (get target-sum game), attempts-left: (get attempts-left game), attempts-used: (get attempts-used game)})
+        none
+    )
+)
+
+(define-read-only (get-player-stats (player principal))
+    (map-get? player-stats player)
+)
+
+(define-read-only (get-attempt (player principal) (attempt-num uint))
+    (map-get? attempt-history (tuple (player player) (attempt-num attempt-num)))
+)
+
+(define-read-only (has-active-game (player principal))
+    (is-some (map-get? active-games player))
+)
+
+(define-read-only (get-total-games)
+    (var-get total-games)
+)
+
+(define-read-only (get-player-count)
+    (var-get player-count)
+)
+
+(define-read-only (get-game-info)
+    {target-count: TARGET-COUNT, min-number: MIN-NUMBER, max-number: MAX-NUMBER, max-attempts: MAX-ATTEMPTS}
+)
