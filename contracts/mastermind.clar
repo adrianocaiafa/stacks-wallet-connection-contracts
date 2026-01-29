@@ -350,3 +350,116 @@
         )
     )
 )
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get active game state (without secret code!)
+(define-read-only (get-active-game (player principal))
+    (match (map-get? active-games player) game
+        (some {
+            attempts-left: (get attempts-left game),
+            attempts-used: (get attempts-used game),
+            game-id: (get game-id game)
+        })
+        none
+    )
+)
+
+;; Read-only: Get player statistics
+(define-read-only (get-player-stats (player principal))
+    (map-get? player-stats player)
+)
+
+;; Read-only: Get attempt history
+(define-read-only (get-attempt (player principal) (attempt-num uint))
+    (map-get? attempt-history (tuple (player player) (attempt-num attempt-num)))
+)
+
+;; Read-only: Get game history
+(define-read-only (get-game-history (player principal) (game-id uint))
+    (map-get? game-history (tuple (player player) (game-id game-id)))
+)
+
+;; Read-only: Get total games played
+(define-read-only (get-total-games)
+    (var-get total-games)
+)
+
+;; Read-only: Get total players
+(define-read-only (get-player-count)
+    (var-get player-count)
+)
+
+;; Read-only: Get player by index
+(define-read-only (get-player-at-index (index uint))
+    (map-get? player-list index)
+)
+
+;; Read-only: Get player game count
+(define-read-only (get-player-game-count (player principal))
+    (default-to u0 (map-get? player-game-counter player))
+)
+
+;; Read-only: Check if player has active game
+(define-read-only (has-active-game (player principal))
+    (is-some (map-get? active-games player))
+)
+
+;; Read-only: Get game constants
+(define-read-only (get-game-info)
+    {
+        code-length: CODE-LENGTH,
+        max-digit: MAX-DIGIT,
+        max-attempts: MAX-ATTEMPTS
+    }
+)
+
+;; Read-only: Get player with stats by index (for leaderboard)
+(define-read-only (get-player-at-index-with-stats (index uint))
+    (match (map-get? player-list index) address
+        (let ((stats (map-get? player-stats address)))
+            (match stats stats-value
+                (some {
+                    address: address,
+                    total-games: (get total-games stats-value),
+                    wins: (get wins stats-value),
+                    total-attempts: (get total-attempts stats-value),
+                    best-attempts: (get best-attempts stats-value),
+                    perfect-games: (get perfect-games stats-value)
+                })
+                none
+            )
+        )
+        none
+    )
+)
+
+;; Read-only: Calculate win rate
+(define-read-only (get-player-win-rate (player principal))
+    (match (map-get? player-stats player) stats-value
+        (let ((total (get total-games stats-value))
+              (wins (get wins stats-value)))
+            (if (is-eq total u0)
+                u0
+                (/ (* wins u10000) total)
+            )
+        )
+        u0
+    )
+)
+
+;; Read-only: Get average attempts per win
+(define-read-only (get-player-avg-attempts (player principal))
+    (match (map-get? player-stats player) stats-value
+        (let ((wins (get wins stats-value))
+              (total-attempts (get total-attempts stats-value)))
+            (if (is-eq wins u0)
+                u0
+                (/ total-attempts wins)
+            )
+        )
+        u0
+    )
+)
