@@ -399,3 +399,114 @@
         )
     )
 )
+
+;; ============================================
+;; Read-only functions for contract queries
+;; ============================================
+
+;; Read-only: Get active game state
+(define-read-only (get-active-game (player principal))
+    (map-get? active-games player)
+)
+
+;; Read-only: Get player statistics
+(define-read-only (get-player-stats (player principal))
+    (map-get? player-stats player)
+)
+
+;; Read-only: Get game history
+(define-read-only (get-game-history (player principal) (game-id uint))
+    (map-get? game-history (tuple (player player) (game-id game-id)))
+)
+
+;; Read-only: Get total games played
+(define-read-only (get-total-games)
+    (var-get total-games)
+)
+
+;; Read-only: Get total players
+(define-read-only (get-player-count)
+    (var-get player-count)
+)
+
+;; Read-only: Get player by index
+(define-read-only (get-player-at-index (index uint))
+    (map-get? player-list index)
+)
+
+;; Read-only: Get player game count
+(define-read-only (get-player-game-count (player principal))
+    (default-to u0 (map-get? player-game-counter player))
+)
+
+;; Read-only: Check if player has active game
+(define-read-only (has-active-game (player principal))
+    (is-some (map-get? active-games player))
+)
+
+;; Read-only: Get hint fee
+(define-read-only (get-hint-fee)
+    HINT-FEE
+)
+
+;; Read-only: Get game range
+(define-read-only (get-game-range)
+    {
+        min: MIN-NUMBER,
+        max: MAX-NUMBER
+    }
+)
+
+;; Read-only: Get max attempts
+(define-read-only (get-max-attempts)
+    MAX-ATTEMPTS
+)
+
+;; Read-only: Get player with stats by index (for leaderboard)
+(define-read-only (get-player-at-index-with-stats (index uint))
+    (match (map-get? player-list index) address
+        (let ((stats (map-get? player-stats address)))
+            (match stats stats-value
+                (some {
+                    address: address,
+                    total-games: (get total-games stats-value),
+                    wins: (get wins stats-value),
+                    total-score: (get total-score stats-value),
+                    best-score: (get best-score stats-value),
+                    perfect-games: (get perfect-games stats-value)
+                })
+                none
+            )
+        )
+        none
+    )
+)
+
+;; Read-only: Calculate win rate percentage (scaled by 100 for precision)
+;; Returns win rate as percentage * 100 (e.g., 4500 = 45.00%)
+(define-read-only (get-player-win-rate (player principal))
+    (match (map-get? player-stats player) stats-value
+        (let ((total (get total-games stats-value))
+              (wins (get wins stats-value)))
+            (if (is-eq total u0)
+                u0
+                (/ (* wins u10000) total)
+            )
+        )
+        u0
+    )
+)
+
+;; Read-only: Get average score per game
+(define-read-only (get-player-average-score (player principal))
+    (match (map-get? player-stats player) stats-value
+        (let ((total (get total-games stats-value))
+              (total-score (get total-score stats-value)))
+            (if (is-eq total u0)
+                u0
+                (/ total-score total)
+            )
+        )
+        u0
+    )
+)
