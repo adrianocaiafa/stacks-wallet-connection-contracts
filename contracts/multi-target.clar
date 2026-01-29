@@ -96,12 +96,12 @@
 )
 
 ;; Helper to validate guess
-(define-private (validate-guess (guess (list 3 uint)))
+(define-private (validate-guess (user-numbers (list 3 uint)))
     (and
-        (is-eq (len guess) TARGET-COUNT)
-        (<= (unwrap-panic (element-at? guess u0)) MAX-NUMBER)
-        (<= (unwrap-panic (element-at? guess u1)) MAX-NUMBER)
-        (<= (unwrap-panic (element-at? guess u2)) MAX-NUMBER)
+        (is-eq (len user-numbers) TARGET-COUNT)
+        (<= (unwrap-panic (element-at? user-numbers u0)) MAX-NUMBER)
+        (<= (unwrap-panic (element-at? user-numbers u1)) MAX-NUMBER)
+        (<= (unwrap-panic (element-at? user-numbers u2)) MAX-NUMBER)
     )
 )
 
