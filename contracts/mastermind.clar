@@ -94,9 +94,9 @@
 
 ;; Helper to validate code format
 (define-private (validate-code (code (list 5 uint)))
-    (let ((len (len code)))
+    (let ((code-len (len code)))
         (and
-            (is-eq len CODE-LENGTH)
+            (is-eq code-len CODE-LENGTH)
             (<= (unwrap-panic (element-at? code u0)) MAX-DIGIT)
             (<= (unwrap-panic (element-at? code u1)) MAX-DIGIT)
             (<= (unwrap-panic (element-at? code u2)) MAX-DIGIT)
