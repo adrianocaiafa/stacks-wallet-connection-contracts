@@ -510,3 +510,22 @@
         u0
     )
 )
+
+;; Read-only: Check if player can use hint
+(define-read-only (can-use-hint (player principal))
+    (match (map-get? active-games player) game
+        (and 
+            (not (get hint-used game))
+            (> (get attempts-left game) u0)
+        )
+        false
+    )
+)
+
+;; Read-only: Get remaining attempts
+(define-read-only (get-remaining-attempts (player principal))
+    (match (map-get? active-games player) game
+        (some (get attempts-left game))
+        none
+    )
+)
