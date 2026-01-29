@@ -284,3 +284,118 @@
         )
     )
 )
+
+;; Public function: Get hint (costs 0.003 STX, only 1 per game, consumes 1 attempt)
+;; Reveals: Parity (even/odd) + Century range (0-99, 100-199, etc.)
+(define-public (get-hint (fee-amount uint))
+    (let ((player tx-sender))
+        ;; Validate fee
+        (asserts! (>= fee-amount HINT-FEE) ERR-INSUFFICIENT-FEE)
+        
+        ;; Get active game
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                ;; Check if hint already used
+                (asserts! (not (get hint-used game)) ERR-HINT-ALREADY-USED)
+                
+                ;; Check if still has attempts
+                (let ((attempts-left (get attempts-left game)))
+                    (asserts! (> attempts-left u0) ERR-NO-ATTEMPTS-LEFT)
+                    
+                    (let ((secret (get secret-number game))
+                          (attempts-used (get attempts-used game))
+                          (game-id (get game-id game)))
+                        
+                        ;; Consume 1 attempt for hint
+                        (let ((new-attempts-left (- attempts-left u1))
+                              (new-attempts-used (+ attempts-used u1)))
+                            
+                            ;; Calculate hint information
+                            (let ((is-even (is-eq (mod secret u2) u0))
+                                  (century-start (* (/ secret u100) u100))
+                                  (century-end (+ century-start u99)))
+                                
+                                ;; Mark hint as used and consume attempt
+                                (map-set active-games player {
+                                    secret-number: secret,
+                                    attempts-left: new-attempts-left,
+                                    attempts-used: new-attempts-used,
+                                    hint-used: true,
+                                    game-id: game-id
+                                })
+                                
+                                ;; STX fee is paid with transaction
+                                (ok {
+                                    parity: (if is-even "even" "odd"),
+                                    range-start: century-start,
+                                    range-end: (if (> century-end MAX-NUMBER) MAX-NUMBER century-end),
+                                    message: "Hint revealed! 1 attempt used",
+                                    attempts-left: new-attempts-left,
+                                    fee-paid: HINT-FEE
+                                })
+                            )
+                        )
+                    )
+                )
+            )
+        )
+    )
+)
+
+;; Public function: Give up current game
+(define-public (give-up)
+    (let ((player tx-sender))
+        ;; Get active game
+        (let ((game-opt (map-get? active-games player)))
+            (asserts! (is-some game-opt) ERR-NO-ACTIVE-GAME)
+            (let ((game (unwrap-panic game-opt)))
+                (let ((secret (get secret-number game))
+                      (attempts-used (get attempts-used game))
+                      (hint-used (get hint-used game)))
+                    
+                    ;; Remove active game
+                    (map-delete active-games player)
+                    
+                    ;; Update stats (loss)
+                    (let ((stats-opt (map-get? player-stats player)))
+                        (match stats-opt stats-value
+                            (map-set player-stats player {
+                                total-games: (+ (get total-games stats-value) u1),
+                                wins: (get wins stats-value),
+                                total-score: (get total-score stats-value),
+                                best-score: (get best-score stats-value),
+                                perfect-games: (get perfect-games stats-value)
+                            })
+                            (map-set player-stats player {
+                                total-games: u1,
+                                wins: u0,
+                                total-score: u0,
+                                best-score: u0,
+                                perfect-games: u0
+                            })
+                        )
+                    )
+                    
+                    ;; Save to history
+                    (let ((player-game-id (default-to u0 (map-get? player-game-counter player))))
+                        (map-set player-game-counter player (+ player-game-id u1))
+                        (map-set game-history (tuple (player player) (game-id player-game-id)) {
+                            secret-number: secret,
+                            attempts-used: attempts-used,
+                            won: false,
+                            score: u0,
+                            hint-used: hint-used
+                        })
+                    )
+                    
+                    (ok {
+                        message: "Game over! The number was:",
+                        secret-number: secret,
+                        attempts-used: attempts-used
+                    })
+                )
+            )
+        )
+    )
+)
