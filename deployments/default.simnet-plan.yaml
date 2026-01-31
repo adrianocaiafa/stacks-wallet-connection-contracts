@@ -94,6 +94,11 @@ plan:
             path: contracts/mastermind.clar
             clarity-version: 4
         - emulated-contract-publish:
+            contract-name: mastermind-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/mastermind-v2.clar
+            clarity-version: 4
+        - emulated-contract-publish:
             contract-name: multi-target
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/multi-target.clar

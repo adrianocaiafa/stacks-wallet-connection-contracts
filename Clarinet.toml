@@ -57,6 +57,10 @@ epoch = "latest"
 path = "contracts/mastermind.clar"
 epoch = "latest"
 
+[contracts.mastermind-v2]
+path = "contracts/mastermind-v2.clar"
+epoch = "latest"
+
 [contracts.multi-target]
 path = "contracts/multi-target.clar"
 epoch = "latest"
