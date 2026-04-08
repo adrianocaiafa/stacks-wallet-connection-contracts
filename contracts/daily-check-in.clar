@@ -8,6 +8,55 @@
 (define-constant ERR-INSUFFICIENT-FEE (err u1002))
 (define-constant ERR-NO-REWARD-AVAILABLE (err u1003))
 
+;; ============================================
+;; EVENTS
+;; ============================================
+
+;; Emitted when user checks in
+(define-event CheckedIn
+    (user principal)
+    (day uint)
+    (fee uint)
+    (current-streak uint)
+    (longest-streak uint)
+    (total-check-ins uint)
+)
+
+;; Emitted when user claims milestone reward
+(define-event MilestoneClaimed
+    (user principal)
+    (milestone uint)
+    (current-streak uint)
+    (reward-claimed bool)
+)
+
+;; Emitted when new user joins (first check-in)
+(define-event NewUserJoined
+    (user principal)
+    (day uint)
+    (total-users uint)
+)
+
+;; Emitted when streak is broken
+(define-event StreakBroken
+    (user principal)
+    (broken-streak uint)
+    (day uint)
+)
+
+;; Emitted when new record streak is achieved
+(define-event NewRecordStreak
+    (user principal)
+    (record-streak uint)
+    (day uint)
+)
+
+;; Emitted when total check-ins milestone is reached
+(define-event TotalCheckinsMilestone
+    (total-check-ins uint)
+    (day uint)
+)
+
 ;; Check-in fee (in micro-STX)
 (define-constant CHECK-IN-FEE u10000)  ;; 0.01 STX per check-in
 
@@ -121,7 +170,6 @@
     )
 )
 
-;; Public function: Daily check-in
 (define-public (check-in (fee-amount uint))
     (let ((sender tx-sender)
           (current-day (get-current-day)))
@@ -129,7 +177,7 @@
         ;; Validate fee
         (asserts! (>= fee-amount CHECK-IN-FEE) ERR-INSUFFICIENT-FEE)
         
-        ;; Get user stats
+        ;; Get user stats (for streak check)
         (let ((user-stats (map-get? user-check-ins sender)))
             (match user-stats stats-value
                 ;; User has checked in before
@@ -143,8 +191,13 @@
             )
         )
         
-        ;; Add user to list if new
-        (add-user-if-new sender)
+        ;; Check if user is new and emit event
+        (let ((is-new-user (add-user-if-new sender)))
+            (if is-new-user
+                (emit-event NewUserJoined sender current-day (var-get user-count))
+                true
+            )
+        )
         
         ;; Get user check-in counter
         (let ((user-check-in-id (default-to u0 (map-get? user-check-in-counter sender))))
@@ -152,31 +205,72 @@
             (map-set user-check-in-counter sender (+ user-check-in-id u1))
             (var-set total-check-ins (+ current-day u1))
             
-            ;; Update user stats
-            (update-user-stats sender fee-amount current-day)
-            
-            ;; Get updated stats for response
-            (let ((updated-stats (unwrap-panic (map-get? user-check-ins sender))))
-                ;; Store in history
-                (map-set check-in-history (tuple (user sender) (check-in-id user-check-in-id)) {
-                    day: current-day,
-                    streak: (get current-streak updated-stats),
-                    points: POINTS-PER-CHECK-IN
-                })
+            ;; Update user stats and capture old stats for comparison
+            (let ((old-stats (map-get? user-check-ins sender)))
+                (update-user-stats sender fee-amount current-day)
                 
-                ;; STX is sent automatically with the transaction
-                (ok {
-                    user: sender,
-                    day: current-day,
-                    current-streak: (get current-streak updated-stats),
-                    longest-streak: (get longest-streak updated-stats),
-                    total-check-ins: (get total-check-ins updated-stats)
-                })
+                ;; Get updated stats for response and events
+                (let ((updated-stats (unwrap-panic (map-get? user-check-ins sender))))
+                    ;; Check for streak events
+                    (match old-stats old-stats-value
+                        (let ((old-longest (get longest-streak old-stats-value))
+                              (new-longest (get longest-streak updated-stats))
+                              (old-streak (get current-streak old-stats-value))
+                              (new-streak (get current-streak updated-stats))
+                              (last-day (get last-check-in-day old-stats-value)))
+                            
+                            ;; Emit streak broken event if streak was > 1 and now is 1
+                            (if (and (> old-streak u1) (is-eq new-streak u1))
+                                (emit-event StreakBroken sender old-streak current-day)
+                                true
+                            )
+                            
+                            ;; Emit new record streak event
+                            (if (> new-longest old-longest)
+                                (emit-event NewRecordStreak sender new-longest current-day)
+                                true
+                            )
+                        )
+                        ;; No old stats (first check-in) - skip streak events
+                        true
+                    )
+                    
+                    ;; Store in history
+                    (map-set check-in-history (tuple (user sender) (check-in-id user-check-in-id)) {
+                        day: current-day,
+                        streak: (get current-streak updated-stats),
+                        points: POINTS-PER-CHECK-IN
+                    })
+                    
+                    ;; Emit main check-in event
+                    (emit-event CheckedIn 
+                        sender 
+                        current-day 
+                        fee-amount 
+                        (get current-streak updated-stats) 
+                        (get longest-streak updated-stats) 
+                        (get total-check-ins updated-stats)
+                    )
+                    
+                    ;; Emit total check-ins milestone event every 1000 check-ins
+                    (if (is-eq (mod (var-get total-check-ins) u1000) u0)
+                        (emit-event TotalCheckinsMilestone (var-get total-check-ins) current-day)
+                        true
+                    )
+                    
+                    ;; STX is sent automatically with the transaction
+                    (ok {
+                        user: sender,
+                        day: current-day,
+                        current-streak: (get current-streak updated-stats),
+                        longest-streak: (get longest-streak updated-stats),
+                        total-check-ins: (get total-check-ins updated-stats)
+                    })
+                )
             )
         )
     )
 )
-
 ;; Public function: Claim milestone reward
 (define-public (claim-milestone-reward (milestone uint) (fee-amount uint))
     (let ((sender tx-sender))
@@ -204,6 +298,9 @@
                 ;; Mark milestone as claimed
                 (map-set milestone-claims (tuple (user sender) (milestone milestone)) true)
                 
+                ;; Emit milestone claimed event
+                (emit-event MilestoneClaimed sender milestone current-streak true)
+                
                 ;; STX fee is sent with transaction
                 (ok {
                     user: sender,
@@ -215,7 +312,6 @@
         )
     )
 )
-
 ;; ============================================
 ;; Read-only functions for contract queries
 ;; ============================================
